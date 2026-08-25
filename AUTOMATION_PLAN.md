@@ -189,7 +189,7 @@ Acceptance:
   recommended next action.
 - Recovery closes the matching issue without touching unrelated issues.
 
-12. #todo Configure repository protections
+12. #done Configure repository protections
 
 Prepare the exact repository settings needed for required checks and
 auto-merge. Keep write permissions scoped to the update workflow. This step
