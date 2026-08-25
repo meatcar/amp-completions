@@ -113,7 +113,7 @@ Acceptance:
 - Unknown conditions fail closed as review-required.
 - Tests cover every classification reason.
 
-7. #todo Add pull-request CI
+7. #done Add pull-request CI
 
 Create one validation workflow that enters the Nix shell and runs the same
 repository commands used locally. Pin third-party actions by commit SHA. Use
