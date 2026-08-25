@@ -166,7 +166,11 @@ def render_markdown(result: PolicyResult) -> str:
     if result.classification == "safe":
         return "## Update policy: safe\n\nSafe additive update.\n"
     reasons = "\n".join(f"- {reason}" for reason in result.reasons)
-    return f"## Update policy: review required\n\n{reasons}\n"
+    return (
+        "## Update policy: review required\n\n"
+        "Are these compatibility changes expected for this Amp release?\n\n"
+        f"{reasons}\n"
+    )
 
 
 def load_manifest(path: Path) -> object:
