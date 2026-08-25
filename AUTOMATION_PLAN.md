@@ -141,7 +141,7 @@ Acceptance:
 - Network and parse failures are distinguishable from "no update."
 - Concurrent detector runs cannot create duplicate work.
 
-9. #todo Generate one update pull request
+9. #done Generate one update pull request
 
 On a detected update, update only the `llm-agents` lock entry, regenerate the
 checked-in files, run all checks, and create or refresh one bot branch and
