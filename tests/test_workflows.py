@@ -27,6 +27,9 @@ class ValidationWorkflowTest(unittest.TestCase):
         self.assertIn("run: nix flake check", self.workflow)
         self.assertIn("run: nix develop --command make check", self.workflow)
 
+    def test_allows_explicit_validation_dispatch(self) -> None:
+        self.assertIn("workflow_dispatch:", self.workflow)
+
 
 class UpdateWorkflowTest(unittest.TestCase):
     @classmethod
@@ -62,8 +65,12 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("gh pr create", self.workflow)
 
     def test_grants_write_only_to_update_workflow(self) -> None:
+        self.assertIn("actions: write", self.workflow)
         self.assertIn("contents: write", self.workflow)
         self.assertIn("pull-requests: write", self.workflow)
+
+    def test_dispatches_validation_for_bot_pull_requests(self) -> None:
+        self.assertIn('gh workflow run validate.yml --ref "$BRANCH"', self.workflow)
 
     def test_labels_every_update_and_auto_merges_only_safe_updates(self) -> None:
         self.assertIn("gh pr edit \"$PULL_REQUEST\" --add-label amp-update", self.workflow)
