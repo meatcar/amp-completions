@@ -71,7 +71,7 @@ Acceptance:
   flags in the manifest.
 - Both files identify the same Amp version.
 
-4. #todo Make `make check` authoritative
+4. #done Make `make check` authoritative
 
 Extend the existing command rather than creating a separate CI test path. It
 must run unit tests, byte-compile Python, validate the Carapace spec,
