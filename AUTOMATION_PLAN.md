@@ -23,7 +23,7 @@ recommended answer and the evidence needed to decide.
 
 ## Sequential plan
 
-1. #todo Define the unattended-update contract
+1. #done Define the unattended-update contract
 
 Write the policy as executable expectations before adding automation. An
 update is safe when it is additive, deterministic, limited to declared
@@ -43,14 +43,16 @@ evidence rather than asking for arbitrary numbers.
 
 2. #todo Source Amp from `llm-agents.nix`
 
-Add `github:numtide/llm-agents.nix` as a flake input and use
-`inputs'.llm-agents.packages.amp` in the development shell. Remove the
-nixpkgs `amp-cli` package and its local unfree-package allowance. Keep the
-stable nixpkgs input for the rest of the shell.
+Add `github:numtide/llm-agents.nix` as a flake input and expose
+`inputs'.llm-agents.packages.amp` to the generator through `AMP_BIN`. Do not
+add it to the development shell's `PATH`, where it would override the user's
+Amp command. Remove the nixpkgs `amp-cli` package and its local unfree-package
+allowance. Keep the stable nixpkgs input for the rest of the shell.
 
 Acceptance:
 
-- `direnv exec . amp version` resolves to the `llm-agents.nix` store path.
+- `AMP_BIN` resolves to the `llm-agents.nix` store path under `nix develop`.
+- Entering the shell does not change the `amp` resolved from the parent `PATH`.
 - `nix flake check` passes without a broad unfree-package setting.
 - `make check` passes inside the development shell.
 
