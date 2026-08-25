@@ -1,0 +1,211 @@
+name: Update Amp
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: amp-update
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    env:
+      BRANCH: automation/amp-update
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Restore failure state
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artifact_url=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=amp-update-failure-state&per_page=1" \
+            --jq '.artifacts[0].archive_download_url // empty')
+          if [ -n "$artifact_url" ]; then
+            gh api "$artifact_url" > /tmp/failure-state.zip
+            unzip -p /tmp/failure-state.zip failure-state.json > /tmp/previous-failure-state.json
+          fi
+      - name: Detect upstream version
+        id: detect
+        run: >-
+          python3 detect_update.py
+          --output "$GITHUB_OUTPUT"
+      - name: Report available update
+        if: steps.detect.outputs.update_available == 'true'
+        run: echo "Amp ${{ steps.detect.outputs.new_version }} is available"
+      - name: Install Nix
+        if: steps.detect.outputs.update_available == 'true'
+        uses: cachix/install-nix-action@56a7bb7b56d9a92d4fd1bc05758de7eea4a370a8
+      - name: Prepare and validate candidate
+        if: steps.detect.outputs.update_available == 'true'
+        id: candidate
+        env:
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+        run: |
+          cp flake.lock /tmp/base-flake.lock
+          cp amp-manifest.json /tmp/base-manifest.json
+          git checkout -B "$BRANCH"
+          nix flake update llm-agents
+          nix develop --command make generate
+          nix flake check
+          nix develop --command make check
+          python3 update_candidate.py \
+            --base-lock /tmp/base-flake.lock \
+            --base-manifest /tmp/base-manifest.json \
+            --expected-version "$NEW_VERSION" \
+            --policy-json /tmp/policy.json \
+            --policy-markdown /tmp/policy.md \
+            --pr-body /tmp/pr-body.md \
+            --output "$GITHUB_OUTPUT"
+      - name: Push validated candidate
+        if: steps.detect.outputs.update_available == 'true'
+        id: push
+        env:
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add flake.lock amp.yaml amp-manifest.json
+          git commit -m "chore: update Amp to $NEW_VERSION"
+          git push --force-with-lease origin "HEAD:$BRANCH"
+      - name: Create or refresh pull request
+        if: steps.detect.outputs.update_available == 'true'
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+        run: |
+          pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          if [ -n "$pull_request" ]; then
+            gh pr edit "$pull_request" \
+              --title "Update Amp to $NEW_VERSION" \
+              --body-file /tmp/pr-body.md
+          else
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$BRANCH" \
+              --title "Update Amp to $NEW_VERSION" \
+              --body-file /tmp/pr-body.md
+          fi
+          pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          echo "number=$pull_request" >> "$GITHUB_OUTPUT"
+      - name: Label and queue safe update
+        if: steps.detect.outputs.update_available == 'true'
+        id: label
+        env:
+          CLASSIFICATION: ${{ steps.candidate.outputs.classification }}
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+        run: |
+          gh label create amp-update \
+            --color 1d76db \
+            --description "Generated Amp completion update" \
+            --force
+          gh label create safe-update \
+            --color 0e8a16 \
+            --description "Update passed the unattended merge policy" \
+            --force
+          gh pr edit "$PULL_REQUEST" --add-label amp-update
+          if [ "$CLASSIFICATION" = safe ]; then
+            gh pr edit "$PULL_REQUEST" --add-label safe-update
+            gh pr merge "$PULL_REQUEST" --auto --squash
+          elif gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name' | grep -Fxq safe-update; then
+            gh pr edit "$PULL_REQUEST" --remove-label safe-update
+          fi
+      - name: Update failure state
+        if: always()
+        id: escalation
+        env:
+          CANDIDATE_OUTCOME: ${{ steps.candidate.outcome }}
+          DETECTOR_STATUS: ${{ steps.detect.outputs.detector_status }}
+          DETECT_OUTCOME: ${{ steps.detect.outcome }}
+          LABEL_OUTCOME: ${{ steps.label.outcome }}
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          PR_OUTCOME: ${{ steps.pull-request.outcome }}
+          PUSH_OUTCOME: ${{ steps.push.outcome }}
+        run: |
+          status=success
+          reason=
+          if [ "$DETECT_OUTCOME" != success ]; then
+            status=failure
+            reason=detect-upstream
+          elif [ "$DETECTOR_STATUS" = update-available ]; then
+            if [ "$CANDIDATE_OUTCOME" != success ]; then
+              status=failure
+              reason=prepare-candidate
+            elif [ "$PUSH_OUTCOME" != success ]; then
+              status=failure
+              reason=push-candidate
+            elif [ "$PR_OUTCOME" != success ]; then
+              status=failure
+              reason=create-pull-request
+            elif [ "$LABEL_OUTCOME" != success ]; then
+              status=failure
+              reason=label-or-auto-merge
+            fi
+          elif [ "$DETECTOR_STATUS" != no-update ]; then
+            status=failure
+            reason=detect-upstream
+          fi
+          version=${NEW_VERSION:-unknown}
+          python3 failure_escalation.py \
+            --previous-state /tmp/previous-failure-state.json \
+            --next-state /tmp/failure-state.json \
+            --body /tmp/failure-body.md \
+            --output "$GITHUB_OUTPUT" \
+            --status "$status" \
+            --version "$version" \
+            --reason "$reason" \
+            --log-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: Create, update, or close failure issue
+        if: always()
+        env:
+          CLOSE_KEY: ${{ steps.escalation.outputs.close_key }}
+          ESCALATE: ${{ steps.escalation.outputs.escalate }}
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ steps.escalation.outputs.key }}
+          REASON: ${{ steps.escalation.outputs.reason }}
+          VERSION: ${{ steps.escalation.outputs.version }}
+        run: |
+          if [ -n "$CLOSE_KEY" ]; then
+            issue=$(gh issue list --state open --label amp-update-failure --limit 100 --json number,body \
+              --jq ".[] | select(.body | contains(\"<!-- amp-update-failure:$CLOSE_KEY -->\")) | .number" | head -1)
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --reason completed
+            fi
+          fi
+          if [ "$ESCALATE" = true ]; then
+            gh label create amp-update-failure \
+              --color d93f0b \
+              --description "Repeated Amp update automation failure" \
+              --force
+            issue=$(gh issue list --state open --label amp-update-failure --limit 100 --json number,body \
+              --jq ".[] | select(.body | contains(\"<!-- amp-update-failure:$KEY -->\")) | .number" | head -1)
+            if [ -n "$issue" ]; then
+              gh issue edit "$issue" --body-file /tmp/failure-body.md
+            else
+              gh issue create \
+                --title "Amp update failed for $VERSION at $REASON" \
+                --label amp-update-failure \
+                --body-file /tmp/failure-body.md
+            fi
+          fi
+      - name: Save failure state
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: amp-update-failure-state
+          path: /tmp/failure-state.json
+          if-no-files-found: error
+          retention-days: 30
