@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
   pull-requests: write
 
 concurrency:
@@ -67,6 +68,7 @@ jobs:
           git push --force-with-lease origin "HEAD:$BRANCH"
       - name: Create or refresh pull request
         if: steps.detect.outputs.update_available == 'true'
+        id: pull-request
         env:
           GH_TOKEN: ${{ github.token }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
@@ -82,4 +84,28 @@ jobs:
               --head "$BRANCH" \
               --title "Update Amp to $NEW_VERSION" \
               --body-file /tmp/pr-body.md
+          fi
+          pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          echo "number=$pull_request" >> "$GITHUB_OUTPUT"
+      - name: Label and queue safe update
+        if: steps.detect.outputs.update_available == 'true'
+        env:
+          CLASSIFICATION: ${{ steps.candidate.outputs.classification }}
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+        run: |
+          gh label create amp-update \
+            --color 1d76db \
+            --description "Generated Amp completion update" \
+            --force
+          gh label create safe-update \
+            --color 0e8a16 \
+            --description "Update passed the unattended merge policy" \
+            --force
+          gh pr edit "$PULL_REQUEST" --add-label amp-update
+          if [ "$CLASSIFICATION" = safe ]; then
+            gh pr edit "$PULL_REQUEST" --add-label safe-update
+            gh pr merge "$PULL_REQUEST" --auto --squash
+          elif gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name' | grep -Fxq safe-update; then
+            gh pr edit "$PULL_REQUEST" --remove-label safe-update
           fi

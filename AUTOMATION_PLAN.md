@@ -160,7 +160,7 @@ with `GITHUB_TOKEN`, present the smallest working choice between an explicit
 `workflow_dispatch` validation run and a narrowly scoped GitHub App. Do not
 introduce a personal access token by default.
 
-10. #todo Auto-merge safe updates
+10. #done Auto-merge safe updates
 
 Apply an `amp-update` label to every generated update. Add `safe-update` only
 when the policy checker returns safe. Enable auto-merge after required checks

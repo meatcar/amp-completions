@@ -57,6 +57,14 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("contents: write", self.workflow)
         self.assertIn("pull-requests: write", self.workflow)
 
+    def test_labels_every_update_and_auto_merges_only_safe_updates(self) -> None:
+        self.assertIn("gh pr edit \"$PULL_REQUEST\" --add-label amp-update", self.workflow)
+        self.assertIn('if [ "$CLASSIFICATION" = safe ]; then', self.workflow)
+        self.assertIn("--add-label safe-update", self.workflow)
+        self.assertIn("gh pr merge \"$PULL_REQUEST\" --auto --squash", self.workflow)
+        self.assertIn("--remove-label safe-update", self.workflow)
+        self.assertNotIn("gh pr review", self.workflow)
+
 
 if __name__ == "__main__":
     unittest.main()
