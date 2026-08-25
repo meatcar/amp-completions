@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  actions: read
+  actions: write
   contents: write
   issues: write
   pull-requests: write
@@ -100,6 +100,7 @@ jobs:
           fi
           pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
           echo "number=$pull_request" >> "$GITHUB_OUTPUT"
+          gh workflow run validate.yml --ref "$BRANCH"
       - name: Label and queue safe update
         if: steps.detect.outputs.update_available == 'true'
         id: label
