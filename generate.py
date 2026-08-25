@@ -205,14 +205,59 @@ def render(root: Command, version: str) -> str:
     return "\n".join([*header, *emit_command(root, 0), ""])
 
 
+def canonical_flag(declaration: str) -> str:
+    names = declaration.rstrip("=?*").split(", ")
+    return next((name for name in names if name.startswith("--")), names[0])
+
+
+def build_manifest(root: Command, version: str) -> dict[str, object]:
+    command_paths = []
+    command_aliases = {}
+    flag_paths = []
+    persistent_flag_paths = []
+
+    def visit(command: Command, parents: tuple[str, ...]) -> None:
+        path = (*parents, command.name)
+        command_path = " ".join(path)
+        command_paths.append(command_path)
+        if command.aliases:
+            command_aliases[command_path] = sorted(command.aliases)
+        for option in command.options:
+            flag_path = f"{command_path} {canonical_flag(option.declaration)}"
+            flag_paths.append(flag_path)
+            if command is root:
+                persistent_flag_paths.append(flag_path)
+        for child in command.commands:
+            visit(child, path)
+
+    visit(root, ())
+    return {
+        "amp_version": version,
+        "command_aliases": dict(sorted(command_aliases.items())),
+        "command_paths": sorted(command_paths),
+        "flag_paths": sorted(flag_paths),
+        "persistent_flag_paths": sorted(persistent_flag_paths),
+    }
+
+
+def render_manifest(root: Command, version: str) -> str:
+    return json.dumps(build_manifest(root, version), indent=2, sort_keys=True) + "\n"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate a Carapace spec from Amp's help output")
     parser.add_argument("--amp", default="amp", help="path to the Amp executable")
     parser.add_argument("--output", type=Path, default=Path("amp.yaml"))
+    parser.add_argument(
+        "--manifest-output",
+        type=Path,
+        default=Path("amp-manifest.json"),
+    )
     arguments = parser.parse_args()
 
     root, version = inspect_amp(arguments.amp)
     arguments.output.write_text(render(root, version))
+    arguments.manifest_output.write_text(render_manifest(root, version))
 
 
 if __name__ == "__main__":

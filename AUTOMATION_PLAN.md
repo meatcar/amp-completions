@@ -56,7 +56,7 @@ Acceptance:
 - `nix flake check` passes without a broad unfree-package setting.
 - `make check` passes inside the development shell.
 
-3. #todo Make generated state self-identifying
+3. #done Make generated state self-identifying
 
 Keep the Amp version in `amp.yaml` and add a deterministic JSON manifest
 generated from the same in-memory command model. The manifest is the policy

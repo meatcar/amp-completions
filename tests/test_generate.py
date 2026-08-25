@@ -1,6 +1,9 @@
 import importlib.util
+import json
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 SPEC = importlib.util.spec_from_file_location(
@@ -75,6 +78,62 @@ class RenderTest(unittest.TestCase):
         self.assertIn('"-m, --mode=": "Set the \'mode\'"', rendered)
         self.assertIn('"mode": ["low", "medium", "high", "ultra"]', rendered)
         self.assertIn('- name: "version"', rendered)
+
+
+class ManifestTest(unittest.TestCase):
+    def test_records_nested_commands_aliases_and_flag_scopes(self) -> None:
+        root = generate.Command(
+            "amp",
+            options=[generate.Option("-m, --mode=", "Mode")],
+            commands=[
+                generate.Command(
+                    "threads",
+                    aliases=["t"],
+                    options=[generate.Option("-l, --limit=", "Limit")],
+                    commands=[generate.Command("list", aliases=["ls"])],
+                )
+            ],
+        )
+
+        manifest = generate.build_manifest(root, "1.2.3")
+
+        self.assertEqual(
+            manifest,
+            {
+                "amp_version": "1.2.3",
+                "command_aliases": {
+                    "amp threads": ["t"],
+                    "amp threads list": ["ls"],
+                },
+                "command_paths": ["amp", "amp threads", "amp threads list"],
+                "flag_paths": ["amp --mode", "amp threads --limit"],
+                "persistent_flag_paths": ["amp --mode"],
+            },
+        )
+
+    def test_main_writes_spec_and_manifest_from_one_inspection(self) -> None:
+        root = generate.Command("amp")
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory) / "amp.yaml"
+            manifest_output = Path(directory) / "amp-manifest.json"
+            with (
+                mock.patch.object(generate, "inspect_amp", return_value=(root, "1.2.3")) as inspect,
+                mock.patch(
+                    "sys.argv",
+                    [
+                        "generate.py",
+                        "--output",
+                        str(output),
+                        "--manifest-output",
+                        str(manifest_output),
+                    ],
+                ),
+            ):
+                generate.main()
+
+            inspect.assert_called_once_with("amp")
+            self.assertIn("# Amp version: 1.2.3", output.read_text())
+            self.assertEqual(json.loads(manifest_output.read_text())["amp_version"], "1.2.3")
 
 
 if __name__ == "__main__":

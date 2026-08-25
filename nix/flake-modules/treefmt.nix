@@ -27,5 +27,9 @@
         ## Everything else
         oxfmt.enable = true;
       };
+      treefmt.config.settings.formatter.oxfmt.excludes = [
+        "amp-manifest.json"
+        "amp.yaml"
+      ];
     };
 }
