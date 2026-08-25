@@ -57,7 +57,7 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("--output \"$GITHUB_OUTPUT\"", self.workflow)
 
     def test_updates_one_reused_branch_after_validation(self) -> None:
-        self.assertIn("BRANCH: automation/amp-update", self.workflow)
+        self.assertIn("BRANCH: rehearsal/amp-safe-update-2", self.workflow)
         self.assertIn("nix flake update llm-agents", self.workflow)
         self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
         self.assertIn("gh pr list --state open", self.workflow)
