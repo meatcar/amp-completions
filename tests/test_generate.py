@@ -107,6 +107,7 @@ class ManifestTest(unittest.TestCase):
                 },
                 "command_paths": ["amp", "amp threads", "amp threads list"],
                 "flag_paths": ["amp --mode", "amp threads --limit"],
+                "manifest_version": 1,
                 "persistent_flag_paths": ["amp --mode"],
             },
         )

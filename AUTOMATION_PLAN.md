@@ -98,7 +98,7 @@ Acceptance:
 - Tests do not access the network or user Carapace configuration.
 - `make check` runs the smoke tests in an isolated temporary configuration.
 
-6. #todo Implement the update policy checker
+6. #done Implement the update policy checker
 
 Compare the checked-in manifest from the base revision with the candidate
 manifest. Classify the update as `safe` or `review-required`, and emit JSON

@@ -236,6 +236,7 @@ def build_manifest(root: Command, version: str) -> dict[str, object]:
         "command_aliases": dict(sorted(command_aliases.items())),
         "command_paths": sorted(command_paths),
         "flag_paths": sorted(flag_paths),
+        "manifest_version": 1,
         "persistent_flag_paths": sorted(persistent_flag_paths),
     }
 

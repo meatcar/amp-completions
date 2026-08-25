@@ -474,6 +474,7 @@
     "amp usage --start",
     "amp version --help"
   ],
+  "manifest_version": 1,
   "persistent_flag_paths": [
     "amp --color",
     "amp --execute",
