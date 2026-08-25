@@ -69,8 +69,11 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("contents: write", self.workflow)
         self.assertIn("pull-requests: write", self.workflow)
 
-    def test_dispatches_validation_for_bot_pull_requests(self) -> None:
-        self.assertIn('gh workflow run validate.yml --ref "$BRANCH"', self.workflow)
+    def test_reruns_suppressed_validation_for_bot_pull_requests(self) -> None:
+        self.assertIn("--event pull_request", self.workflow)
+        self.assertIn("action_required", self.workflow)
+        self.assertIn('gh run rerun "$validation_run"', self.workflow)
+        self.assertNotIn('gh workflow run validate.yml --ref "$BRANCH"', self.workflow)
 
     def test_labels_every_update_and_auto_merges_only_safe_updates(self) -> None:
         self.assertIn("gh pr edit \"$PULL_REQUEST\" --add-label amp-update", self.workflow)

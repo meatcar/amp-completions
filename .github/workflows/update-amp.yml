@@ -100,7 +100,27 @@ jobs:
           fi
           pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
           echo "number=$pull_request" >> "$GITHUB_OUTPUT"
-          gh workflow run validate.yml --ref "$BRANCH"
+          head_sha=$(git rev-parse HEAD)
+          validation_run=
+          for _ in $(seq 1 12); do
+            validation_run=$(gh run list \
+              --workflow validate.yml \
+              --branch "$BRANCH" \
+              --event pull_request \
+              --limit 20 \
+              --json databaseId,headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$head_sha\" and .conclusion == \"action_required\") | .databaseId" \
+              | head -1)
+            if [ -n "$validation_run" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$validation_run" ]; then
+            echo "Suppressed validation run not found for $head_sha" >&2
+            exit 1
+          fi
+          gh run rerun "$validation_run"
       - name: Label and queue safe update
         if: steps.detect.outputs.update_available == 'true'
         id: label
