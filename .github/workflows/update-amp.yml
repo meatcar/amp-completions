@@ -1,0 +1,28 @@
+name: Update Amp
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: amp-update
+  cancel-in-progress: false
+
+jobs:
+  detect:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Detect upstream version
+        id: detect
+        run: >-
+          python3 detect_update.py
+          --output "$GITHUB_OUTPUT"
+      - name: Report available update
+        if: steps.detect.outputs.update_available == 'true'
+        run: echo "Amp ${{ steps.detect.outputs.new_version }} is available"

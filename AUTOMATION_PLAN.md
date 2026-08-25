@@ -126,7 +126,7 @@ Acceptance:
 - Workflow permissions are read-only.
 - A test pull request demonstrates both a failing and passing run.
 
-8. #todo Detect upstream Amp updates
+8. #done Detect upstream Amp updates
 
 Add an hourly scheduled workflow with a manual trigger. Read the version from
 `numtide/llm-agents.nix` at `packages/amp/hashes.json` and compare it with the
