@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1787631059-gc74b7a",
+  "amp_version": "0.0.1787674203-g8784ca",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -107,6 +107,7 @@
     "amp config model-providers add-router",
     "amp config model-providers deactivate",
     "amp config model-providers delete",
+    "amp config model-providers edit-key",
     "amp config model-providers edit-router",
     "amp config model-providers list",
     "amp config model-providers show",
@@ -281,7 +282,7 @@
     "amp config model-providers add-router --cloudflare-account-id",
     "amp config model-providers add-router --cloudflare-gateway-id",
     "amp config model-providers add-router --headers",
-    "amp config model-providers add-router --models",
+    "amp config model-providers add-router --model-mapping",
     "amp config model-providers add-router --name",
     "amp config model-providers add-router --no-active",
     "amp config model-providers add-router --personal",
@@ -289,11 +290,15 @@
     "amp config model-providers add-router --router-options",
     "amp config model-providers add-router --workspace",
     "amp config model-providers deactivate --yes",
+    "amp config model-providers edit-key --clear-model-mapping",
+    "amp config model-providers edit-key --model-mapping",
+    "amp config model-providers edit-key --name",
     "amp config model-providers edit-router --base-url",
+    "amp config model-providers edit-router --clear-model-mapping",
     "amp config model-providers edit-router --cloudflare-account-id",
     "amp config model-providers edit-router --cloudflare-gateway-id",
     "amp config model-providers edit-router --headers",
-    "amp config model-providers edit-router --models",
+    "amp config model-providers edit-router --model-mapping",
     "amp config model-providers edit-router --name",
     "amp config model-providers edit-router --query-params",
     "amp config model-providers edit-router --router-options",
@@ -395,6 +400,7 @@
     "amp projects update --listed-on-amp-store",
     "amp projects update --no-listed-on-amp-store",
     "amp projects update --orb-size",
+    "amp projects update --pre-setup-script-file",
     "amp projects update --ship-behavior",
     "amp secrets delete --app",
     "amp secrets delete --json",
