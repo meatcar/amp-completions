@@ -1,7 +1,7 @@
 .PHONY: generate test check install
 
 generate:
-	python3 generate.py
+	python3 generate.py --amp "$${AMP_BIN:-amp}"
 
 test:
 	python3 -m unittest discover -s tests

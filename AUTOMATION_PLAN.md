@@ -41,7 +41,7 @@ Decision gate: ask the owner only if real Amp history shows the proposed
 limits would create frequent false alarms. Recommend limits from that
 evidence rather than asking for arbitrary numbers.
 
-2. #todo Source Amp from `llm-agents.nix`
+2. #done Source Amp from `llm-agents.nix`
 
 Add `github:numtide/llm-agents.nix` as a flake input and expose
 `inputs'.llm-agents.packages.amp` to the generator through `AMP_BIN`. Do not
