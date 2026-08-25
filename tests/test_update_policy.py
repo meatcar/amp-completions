@@ -162,6 +162,7 @@ class UpdatePolicyTest(unittest.TestCase):
         report = update_policy.render_markdown(result)
 
         self.assertIn("## Update policy: review required", report)
+        self.assertIn("Are these compatibility changes expected for this Amp release?", report)
         self.assertIn("- removed command path: amp threads", report)
 
     def test_cli_emits_json_and_markdown(self) -> None:

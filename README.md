@@ -16,24 +16,81 @@ make install
 Open a new shell after installing the spec. Carapace supports Bash, Zsh, Fish,
 Nushell, PowerShell, and several other shells.
 
-## Update
+## Generated files
 
-Install the Amp version you want to describe, then regenerate the spec:
+`amp.yaml` and `amp-manifest.json` are generated together from Amp's help
+output. Do not edit either file by hand. `amp.yaml` is the Carapace spec;
+`amp-manifest.json` records command, alias, and flag paths for update policy
+checks.
+
+The pinned Amp package comes from the
+[`llm-agents.nix`](https://github.com/numtide/llm-agents.nix) flake input. The
+development shell exposes that package as `AMP_BIN` without adding an `amp`
+command to `PATH`.
+
+To update the pin and regenerate both files:
 
 ```sh
-make generate
-make check
+nix flake update llm-agents
+nix develop --command make generate
+nix flake check
+nix develop --command make check
 ```
 
-The generator recursively calls `amp --help` and each subcommand's `--help`.
-It does not run while completing commands.
+The generator recursively calls `amp --help` and each subcommand's help. It
+does not run during completion. `make check` rejects stale or nondeterministic
+generated files and runs the test suite.
 
 Use another Amp executable when needed:
 
 ```sh
-python3 generate.py --amp /path/to/amp
+AMP_BIN=/path/to/amp make generate
+AMP_BIN=/path/to/amp make check
 ```
 
 The generated command tree and flags follow Amp's help output. Semantic values
 that cannot be inferred reliably, such as agent modes and visibility levels,
 are maintained in `generate.py`.
+
+## Automation
+
+The `Update Amp` workflow checks `llm-agents.nix` at minute 17 of every hour.
+When it finds a new Amp version, it updates the reusable
+`automation/amp-update` branch, regenerates the files, runs the checks, and
+opens or refreshes one pull request.
+
+Every generated pull request has `amp-update`. An additive update that passes
+the unattended policy also has `safe-update` and merges after the required
+`validate` check passes. A pull request without `safe-update` stays open. Its
+policy report lists the removed commands, flags, aliases, or other condition
+that needs a decision. `amp-update-failure` marks the issue created after the
+same version fails at the same step twice. A later successful run closes that
+issue.
+
+The workflows use no repository secrets. They use GitHub's per-run token with
+these permissions:
+
+- Validation has `contents: read` to check out the repository.
+- Update has `contents: write` to maintain the candidate branch,
+  `pull-requests: write` to create, label, and queue its pull request,
+  `actions: write` to rerun the pull-request validation suppressed for
+  GitHub-authored commits, and `issues: write` for repeated-failure reports.
+
+### Maintainer operations
+
+Run detection immediately:
+
+```sh
+gh workflow run update-amp.yml --ref main
+gh run list --workflow update-amp.yml --limit 5
+```
+
+A failed candidate is not pushed. Fix the reported step, then rerun the
+workflow. It reuses the existing branch and pull request. Repeated failures
+also link their run from one `amp-update-failure` issue.
+
+For a pull request with `amp-update` but no `safe-update`, read the policy
+report before merging. If an upstream removal is expected, verify the named
+paths and merge after `validate` passes. If the report names parser
+incompatibility, nondeterminism, an undeclared file, or an unexpected lock
+change, fix the generator or workflow and rerun instead.
