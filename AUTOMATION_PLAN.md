@@ -174,7 +174,7 @@ Acceptance:
 - A failed or missing required check prevents merging.
 - The bot cannot approve unrelated pull requests.
 
-11. #todo Add quiet failure escalation
+11. #done Add quiet failure escalation
 
 Keep transient failures in workflow logs. After two consecutive failures for
 the same Amp version and reason, create or update one issue. Close that issue

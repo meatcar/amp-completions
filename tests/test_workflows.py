@@ -37,6 +37,14 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertRegex(self.workflow, r'cron: ["\']17 \* \* \* \*["\']')
         self.assertIn("workflow_dispatch:", self.workflow)
 
+    def test_pins_actions_to_commit_shas(self) -> None:
+        action_references = re.findall(r"uses:\s*([^\s]+)", self.workflow)
+
+        self.assertTrue(action_references)
+        self.assertTrue(
+            all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) for reference in action_references)
+        )
+
     def test_serializes_detector_runs(self) -> None:
         self.assertIn("group: amp-update", self.workflow)
         self.assertIn("cancel-in-progress: false", self.workflow)
@@ -64,6 +72,12 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("gh pr merge \"$PULL_REQUEST\" --auto --squash", self.workflow)
         self.assertIn("--remove-label safe-update", self.workflow)
         self.assertNotIn("gh pr review", self.workflow)
+
+    def test_escalates_repeated_failures_and_persists_state(self) -> None:
+        self.assertIn("failure_escalation.py", self.workflow)
+        self.assertIn("amp-update-failure", self.workflow)
+        self.assertIn("actions/upload-artifact@", self.workflow)
+        self.assertIn("if: always()", self.workflow)
 
 
 if __name__ == "__main__":

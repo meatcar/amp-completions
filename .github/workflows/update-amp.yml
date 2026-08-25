@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
+  actions: read
   contents: write
   issues: write
   pull-requests: write
@@ -24,6 +25,17 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
+      - name: Restore failure state
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          artifact_url=$(gh api "repos/${{ github.repository }}/actions/artifacts?name=amp-update-failure-state&per_page=1" \
+            --jq '.artifacts[0].archive_download_url // empty')
+          if [ -n "$artifact_url" ]; then
+            gh api "$artifact_url" > /tmp/failure-state.zip
+            unzip -p /tmp/failure-state.zip failure-state.json > /tmp/previous-failure-state.json
+          fi
       - name: Detect upstream version
         id: detect
         run: >-
@@ -58,6 +70,7 @@ jobs:
             --output "$GITHUB_OUTPUT"
       - name: Push validated candidate
         if: steps.detect.outputs.update_available == 'true'
+        id: push
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
         run: |
@@ -89,6 +102,7 @@ jobs:
           echo "number=$pull_request" >> "$GITHUB_OUTPUT"
       - name: Label and queue safe update
         if: steps.detect.outputs.update_available == 'true'
+        id: label
         env:
           CLASSIFICATION: ${{ steps.candidate.outputs.classification }}
           GH_TOKEN: ${{ github.token }}
@@ -109,3 +123,89 @@ jobs:
           elif gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name' | grep -Fxq safe-update; then
             gh pr edit "$PULL_REQUEST" --remove-label safe-update
           fi
+      - name: Update failure state
+        if: always()
+        id: escalation
+        env:
+          CANDIDATE_OUTCOME: ${{ steps.candidate.outcome }}
+          DETECTOR_STATUS: ${{ steps.detect.outputs.detector_status }}
+          DETECT_OUTCOME: ${{ steps.detect.outcome }}
+          LABEL_OUTCOME: ${{ steps.label.outcome }}
+          NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          PR_OUTCOME: ${{ steps.pull-request.outcome }}
+          PUSH_OUTCOME: ${{ steps.push.outcome }}
+        run: |
+          status=success
+          reason=
+          if [ "$DETECT_OUTCOME" != success ]; then
+            status=failure
+            reason=detect-upstream
+          elif [ "$DETECTOR_STATUS" = update-available ]; then
+            if [ "$CANDIDATE_OUTCOME" != success ]; then
+              status=failure
+              reason=prepare-candidate
+            elif [ "$PUSH_OUTCOME" != success ]; then
+              status=failure
+              reason=push-candidate
+            elif [ "$PR_OUTCOME" != success ]; then
+              status=failure
+              reason=create-pull-request
+            elif [ "$LABEL_OUTCOME" != success ]; then
+              status=failure
+              reason=label-or-auto-merge
+            fi
+          elif [ "$DETECTOR_STATUS" != no-update ]; then
+            status=failure
+            reason=detect-upstream
+          fi
+          version=${NEW_VERSION:-unknown}
+          python3 failure_escalation.py \
+            --previous-state /tmp/previous-failure-state.json \
+            --next-state /tmp/failure-state.json \
+            --body /tmp/failure-body.md \
+            --output "$GITHUB_OUTPUT" \
+            --status "$status" \
+            --version "$version" \
+            --reason "$reason" \
+            --log-url "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+      - name: Create, update, or close failure issue
+        if: always()
+        env:
+          CLOSE_KEY: ${{ steps.escalation.outputs.close_key }}
+          ESCALATE: ${{ steps.escalation.outputs.escalate }}
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ steps.escalation.outputs.key }}
+          REASON: ${{ steps.escalation.outputs.reason }}
+          VERSION: ${{ steps.escalation.outputs.version }}
+        run: |
+          if [ -n "$CLOSE_KEY" ]; then
+            issue=$(gh issue list --state open --label amp-update-failure --limit 100 --json number,body \
+              --jq ".[] | select(.body | contains(\"<!-- amp-update-failure:$CLOSE_KEY -->\")) | .number" | head -1)
+            if [ -n "$issue" ]; then
+              gh issue close "$issue" --reason completed
+            fi
+          fi
+          if [ "$ESCALATE" = true ]; then
+            gh label create amp-update-failure \
+              --color d93f0b \
+              --description "Repeated Amp update automation failure" \
+              --force
+            issue=$(gh issue list --state open --label amp-update-failure --limit 100 --json number,body \
+              --jq ".[] | select(.body | contains(\"<!-- amp-update-failure:$KEY -->\")) | .number" | head -1)
+            if [ -n "$issue" ]; then
+              gh issue edit "$issue" --body-file /tmp/failure-body.md
+            else
+              gh issue create \
+                --title "Amp update failed for $VERSION at $REASON" \
+                --label amp-update-failure \
+                --body-file /tmp/failure-body.md
+            fi
+          fi
+      - name: Save failure state
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: amp-update-failure-state
+          path: /tmp/failure-state.json
+          if-no-files-found: error
+          retention-days: 30
