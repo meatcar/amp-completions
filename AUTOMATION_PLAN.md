@@ -85,7 +85,7 @@ Acceptance:
 - Temporary files are removed on success and failure.
 - The command succeeds from a clean checkout under `nix develop`.
 
-5. #todo Add completion smoke tests
+5. #done Add completion smoke tests
 
 Exercise Carapace through its command interface using a small set of stable
 expectations. Cover a root command, a nested command, a persistent flag, and
