@@ -12,14 +12,14 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: amp-update
+  group: amp-update-rehearsal-safe
   cancel-in-progress: false
 
 jobs:
   detect:
     runs-on: ubuntu-24.04
     env:
-      BRANCH: automation/amp-update
+      BRANCH: rehearsal/amp-safe-update
     steps:
       - name: Check out repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -93,7 +93,7 @@ jobs:
               --body-file /tmp/pr-body.md
           else
             gh pr create \
-              --base "${{ github.event.repository.default_branch }}" \
+              --base rehearsal/amp-safe-base \
               --head "$BRANCH" \
               --title "Update Amp to $NEW_VERSION" \
               --body-file /tmp/pr-body.md
