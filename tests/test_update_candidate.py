@@ -8,7 +8,17 @@ BASE_LOCK = {
     "version": 7,
     "root": "root",
     "nodes": {
-        "llm-agents": {"locked": {"rev": "old"}},
+        "root": {
+            "inputs": {
+                "llm-agents": "llm-agents",
+                "nixpkgs": "nixpkgs",
+            }
+        },
+        "llm-agents": {
+            "inputs": {"nixpkgs": "llm-nixpkgs"},
+            "locked": {"rev": "old"},
+        },
+        "llm-nixpkgs": {"locked": {"rev": "llm-old"}},
         "nixpkgs": {"locked": {"rev": "stable"}},
     },
 }
@@ -30,6 +40,15 @@ class UpdateCandidateTest(unittest.TestCase):
 
         with self.assertRaisesRegex(ValueError, "nixpkgs"):
             update_candidate.validate_lock_update(BASE_LOCK, candidate)
+
+    def test_accepts_transitive_llm_agents_lock_changes(self) -> None:
+        candidate = copy.deepcopy(BASE_LOCK)
+        candidate["nodes"]["llm-agents"]["locked"]["rev"] = "new"
+        candidate["nodes"]["llm-nixpkgs"]["locked"]["rev"] = "llm-new"
+
+        revision = update_candidate.validate_lock_update(BASE_LOCK, candidate)
+
+        self.assertEqual(revision, "new")
 
     def test_rejects_undeclared_candidate_file(self) -> None:
         with self.assertRaisesRegex(ValueError, "README.md"):

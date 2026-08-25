@@ -11,6 +11,23 @@ import update_policy
 ALLOWED_FILES = frozenset({"amp-manifest.json", "amp.yaml", "flake.lock"})
 
 
+def dependency_closure(nodes: dict[str, object], root: str) -> set[str]:
+    pending = [root]
+    found = set()
+    while pending:
+        name = pending.pop()
+        if name in found:
+            continue
+        found.add(name)
+        node = nodes.get(name)
+        if not isinstance(node, dict) or not isinstance(node.get("inputs"), dict):
+            continue
+        pending.extend(
+            reference for reference in node["inputs"].values() if isinstance(reference, str)
+        )
+    return found
+
+
 def validate_lock_update(base: object, candidate: object) -> str:
     if not isinstance(base, dict) or not isinstance(candidate, dict):
         raise ValueError("flake locks must be JSON objects")
@@ -26,14 +43,39 @@ def validate_lock_update(base: object, candidate: object) -> str:
     if set(base_nodes) != set(candidate_nodes):
         raise ValueError("flake lock node set changed")
 
+    root_name = base.get("root")
+    base_root = base_nodes.get(root_name) if isinstance(root_name, str) else None
+    candidate_root = candidate_nodes.get(root_name) if isinstance(root_name, str) else None
+    if (
+        not isinstance(base_root, dict)
+        or not isinstance(candidate_root, dict)
+        or not isinstance(base_root.get("inputs"), dict)
+        or base_root.get("inputs") != candidate_root.get("inputs")
+    ):
+        raise ValueError("flake lock root inputs changed")
+    root_inputs = base_root["inputs"]
+    llm_agents_name = root_inputs.get("llm-agents")
+    if not isinstance(llm_agents_name, str):
+        raise ValueError("flake lock root has no llm-agents input")
+
+    owned_nodes = dependency_closure(base_nodes, llm_agents_name) | dependency_closure(
+        candidate_nodes, llm_agents_name
+    )
+    shared_nodes = set()
+    for input_name, reference in root_inputs.items():
+        if input_name != "llm-agents" and isinstance(reference, str):
+            shared_nodes |= dependency_closure(base_nodes, reference)
+            shared_nodes |= dependency_closure(candidate_nodes, reference)
+    allowed_nodes = owned_nodes - shared_nodes
     changed_nodes = {
         name for name in base_nodes if base_nodes[name] != candidate_nodes[name]
     }
-    if changed_nodes != {"llm-agents"}:
-        names = ", ".join(sorted(changed_nodes)) or "none"
-        raise ValueError(f"expected only llm-agents lock change, changed: {names}")
+    unexpected_nodes = changed_nodes - allowed_nodes
+    if llm_agents_name not in changed_nodes or unexpected_nodes:
+        names = ", ".join(sorted(unexpected_nodes or changed_nodes)) or "none"
+        raise ValueError(f"lock changed outside llm-agents inputs: {names}")
 
-    llm_agents = candidate_nodes["llm-agents"]
+    llm_agents = candidate_nodes[llm_agents_name]
     if not isinstance(llm_agents, dict) or not isinstance(llm_agents.get("locked"), dict):
         raise ValueError("llm-agents lock node is malformed")
     revision = llm_agents["locked"].get("rev")
