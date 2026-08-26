@@ -138,7 +138,7 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
 class RenovateConfigTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.config = json.loads((ROOT / ".renovate.json").read_text())
+        cls.config = json.loads((ROOT / "renovate.json").read_text())
 
     def test_updates_only_github_actions(self) -> None:
         self.assertEqual(self.config["enabledManagers"], ["github-actions"])
