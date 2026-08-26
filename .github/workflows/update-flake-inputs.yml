@@ -1,0 +1,108 @@
+name: Update flake inputs
+
+on:
+  schedule:
+    - cron: "37 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: flake-input-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-24.04
+    env:
+      BRANCH: automation/flake-update
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Install Nix
+        uses: cachix/install-nix-action@56a7bb7b56d9a92d4fd1bc05758de7eea4a370a8
+      - name: Prepare and validate candidate
+        id: candidate
+        run: |
+          cp flake.lock /tmp/base-flake.lock
+          git checkout -B "$BRANCH"
+          nix flake update nixpkgs flake-parts flake-root treefmt-nix
+          if git diff --quiet -- flake.lock; then
+            echo "update_available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          python3 flake_update_candidate.py \
+            --base-lock /tmp/base-flake.lock \
+            --input nixpkgs \
+            --input flake-parts \
+            --input flake-root \
+            --input treefmt-nix \
+            --pr-body /tmp/pr-body.md \
+            --output "$GITHUB_OUTPUT"
+          nix flake check
+          nix develop --command make check
+      - name: Push validated candidate
+        if: steps.candidate.outputs.update_available == 'true'
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add flake.lock
+          git commit -m "chore: update Nix flake inputs"
+          git push --force-with-lease origin "HEAD:$BRANCH"
+      - name: Create or refresh pull request
+        if: steps.candidate.outputs.update_available == 'true'
+        id: pull-request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          if [ -n "$pull_request" ]; then
+            gh pr edit "$pull_request" \
+              --title "Update Nix flake inputs" \
+              --body-file /tmp/pr-body.md
+          else
+            gh pr create \
+              --base "${{ github.event.repository.default_branch }}" \
+              --head "$BRANCH" \
+              --title "Update Nix flake inputs" \
+              --body-file /tmp/pr-body.md
+          fi
+          pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
+          echo "number=$pull_request" >> "$GITHUB_OUTPUT"
+          head_sha=$(git rev-parse HEAD)
+          validation_run=
+          for _ in $(seq 1 12); do
+            validation_run=$(gh run list \
+              --workflow validate.yml \
+              --branch "$BRANCH" \
+              --event pull_request \
+              --limit 20 \
+              --json databaseId,headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$head_sha\" and .conclusion == \"action_required\") | .databaseId" \
+              | head -1)
+            if [ -n "$validation_run" ]; then
+              break
+            fi
+            sleep 5
+          done
+          if [ -z "$validation_run" ]; then
+            echo "Suppressed validation run not found for $head_sha" >&2
+            exit 1
+          fi
+          gh run rerun "$validation_run"
+      - name: Label update
+        if: steps.candidate.outputs.update_available == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+        run: |
+          gh label create flake-update \
+            --color 5319e7 \
+            --description "Generated non-Amp Nix flake input update" \
+            --force
+          gh pr edit "$PULL_REQUEST" --add-label flake-update

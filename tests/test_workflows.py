@@ -1,4 +1,5 @@
 import re
+import json
 import unittest
 from pathlib import Path
 
@@ -88,6 +89,66 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("amp-update-failure", self.workflow)
         self.assertIn("actions/upload-artifact@", self.workflow)
         self.assertIn("if: always()", self.workflow)
+
+
+class FlakeUpdateWorkflowTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (ROOT / ".github/workflows/update-flake-inputs.yml").read_text()
+
+    def test_runs_weekly_and_manually(self) -> None:
+        self.assertRegex(self.workflow, r'cron: ["\']37 5 \* \* 1["\']')
+        self.assertIn("workflow_dispatch:", self.workflow)
+
+    def test_pins_actions_to_commit_shas(self) -> None:
+        action_references = re.findall(r"uses:\s*([^\s]+)", self.workflow)
+
+        self.assertTrue(action_references)
+        self.assertTrue(
+            all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) for reference in action_references)
+        )
+
+    def test_updates_only_non_amp_root_inputs(self) -> None:
+        self.assertIn("BRANCH: automation/flake-update", self.workflow)
+        self.assertIn(
+            "nix flake update nixpkgs flake-parts flake-root treefmt-nix",
+            self.workflow,
+        )
+        self.assertNotIn("nix flake update llm-agents", self.workflow)
+        self.assertIn("flake_update_candidate.py", self.workflow)
+        self.assertIn("git add flake.lock", self.workflow)
+
+    def test_validates_before_push_and_reuses_one_pull_request(self) -> None:
+        self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
+        self.assertIn("gh pr list --state open", self.workflow)
+        self.assertIn("gh pr edit", self.workflow)
+        self.assertIn("gh pr create", self.workflow)
+
+    def test_serializes_runs_and_reruns_suppressed_validation(self) -> None:
+        self.assertIn("group: flake-input-update", self.workflow)
+        self.assertIn("cancel-in-progress: false", self.workflow)
+        self.assertIn("action_required", self.workflow)
+        self.assertIn('gh run rerun "$validation_run"', self.workflow)
+
+    def test_labels_but_does_not_merge_updates(self) -> None:
+        self.assertIn("flake-update", self.workflow)
+        self.assertNotIn("gh pr merge", self.workflow)
+
+
+class RenovateConfigTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.config = json.loads((ROOT / ".renovate.json").read_text())
+
+    def test_updates_only_github_actions(self) -> None:
+        self.assertEqual(self.config["enabledManagers"], ["github-actions"])
+        self.assertNotIn("nix", self.config)
+
+    def test_disables_lock_maintenance_and_automerge(self) -> None:
+        self.assertEqual(self.config["lockFileMaintenance"], {"enabled": False})
+        self.assertFalse(
+            any(rule.get("automerge") for rule in self.config.get("packageRules", []))
+        )
 
 
 if __name__ == "__main__":

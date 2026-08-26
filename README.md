@@ -59,6 +59,13 @@ When it finds a new Amp version, it updates the reusable
 `automation/amp-update` branch, regenerates the files, runs the checks, and
 opens or refreshes one pull request.
 
+The `Update flake inputs` workflow runs every Monday at 05:37 UTC. It updates
+the root `nixpkgs`, `flake-parts`, `flake-root`, and `treefmt-nix` inputs on the
+reusable `automation/flake-update` branch. It rejects changes to `llm-agents`
+or files other than `flake.lock`, then opens a pull request for review with the
+`flake-update` label. Renovate handles only SHA-pinned GitHub Actions and does
+not update Nix inputs or merge pull requests.
+
 Every generated pull request has `amp-update`. An additive update that passes
 the unattended policy also has `safe-update` and merges after the required
 `validate` check passes. A pull request without `safe-update` stays open. Its
