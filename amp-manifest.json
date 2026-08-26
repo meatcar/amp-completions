@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1787686574-g5b2873",
+  "amp_version": "0.0.1787702575-g2427cf",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -400,6 +400,7 @@
     "amp projects update --listed-on-amp-store",
     "amp projects update --no-listed-on-amp-store",
     "amp projects update --orb-size",
+    "amp projects update --pre-clone-script-file",
     "amp projects update --pre-setup-script-file",
     "amp projects update --ship-behavior",
     "amp secrets delete --app",
