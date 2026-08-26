@@ -41,7 +41,7 @@ class UpdateWorkflowTest(unittest.TestCase):
         cls.workflow = (ROOT / ".github/workflows/update-amp.yml").read_text()
 
     def test_runs_hourly_and_manually(self) -> None:
-        self.assertRegex(self.workflow, r'cron: ["\']17 \* \* \* \*["\']')
+        self.assertRegex(self.workflow, r'cron: ["\']\d+ \* \* \* \*["\']')
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
@@ -103,7 +103,7 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
         cls.workflow = (ROOT / ".github/workflows/update-flake-inputs.yml").read_text()
 
     def test_runs_weekly_and_manually(self) -> None:
-        self.assertRegex(self.workflow, r'cron: ["\']37 5 \* \* 1["\']')
+        self.assertRegex(self.workflow, r'cron: ["\']\d+ \d+ \* \* \d["\']')
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:

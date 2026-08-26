@@ -2,7 +2,7 @@ name: Update flake inputs
 
 on:
   schedule:
-    - cron: "37 5 * * 1"
+    - cron: "30 5 * * 1" # Run between hourly Amp checks to avoid concurrent lock updates.
   workflow_dispatch:
 
 permissions:
