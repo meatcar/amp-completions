@@ -13,11 +13,14 @@ class ValidationWorkflowTest(unittest.TestCase):
         cls.workflow = (ROOT / ".github/workflows/validate.yml").read_text()
 
     def test_pins_actions_to_commit_shas(self) -> None:
-        action_references = re.findall(r"uses:\s*([^\s]+)", self.workflow)
+        action_references = re.findall(r"uses:\s*([^\s]+)(?:\s+#\s+(\S+))?", self.workflow)
 
         self.assertTrue(action_references)
         self.assertTrue(
-            all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) for reference in action_references)
+            all(
+                re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) and version
+                for reference, version in action_references
+            )
         )
 
     def test_uses_read_only_permissions_and_cancels_superseded_runs(self) -> None:
@@ -42,11 +45,14 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
-        action_references = re.findall(r"uses:\s*([^\s]+)", self.workflow)
+        action_references = re.findall(r"uses:\s*([^\s]+)(?:\s+#\s+(\S+))?", self.workflow)
 
         self.assertTrue(action_references)
         self.assertTrue(
-            all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) for reference in action_references)
+            all(
+                re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) and version
+                for reference, version in action_references
+            )
         )
 
     def test_serializes_detector_runs(self) -> None:
@@ -101,11 +107,14 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
-        action_references = re.findall(r"uses:\s*([^\s]+)", self.workflow)
+        action_references = re.findall(r"uses:\s*([^\s]+)(?:\s+#\s+(\S+))?", self.workflow)
 
         self.assertTrue(action_references)
         self.assertTrue(
-            all(re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) for reference in action_references)
+            all(
+                re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) and version
+                for reference, version in action_references
+            )
         )
 
     def test_updates_only_non_amp_root_inputs(self) -> None:
