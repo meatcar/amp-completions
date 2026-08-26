@@ -46,7 +46,6 @@ jobs:
             --pr-body /tmp/pr-body.md \
             --output "$GITHUB_OUTPUT"
           nix flake check
-          nix develop --command make check
       - name: Push validated candidate
         if: steps.candidate.outputs.update_available == 'true'
         run: |

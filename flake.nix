@@ -20,6 +20,7 @@
       imports = [
         inputs.flake-root.flakeModule
         inputs.treefmt-nix.flakeModule
+        ./nix/flake-modules/checks.nix
         ./nix/flake-modules/devshell.nix
       ];
       systems = [ "x86_64-linux" ];

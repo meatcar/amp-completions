@@ -48,11 +48,10 @@ Amp during completion.
 
 ## Development
 
-Use the Nix development shell to regenerate and validate the spec:
+Regenerate the spec through the Nix development shell, then run all checks:
 
 ```sh
 nix develop --command make generate
-nix develop --command make check
 nix flake check
 ```
 
@@ -63,9 +62,9 @@ AMP_BIN=/path/to/amp make generate
 AMP_BIN=/path/to/amp make check
 ```
 
-Do not edit `amp.yaml` or `amp-manifest.json` by hand. `make check` rejects
-stale or nondeterministic generated files and runs the parser, policy,
-workflow, and completion tests.
+Do not edit `amp.yaml` or `amp-manifest.json` by hand. `nix flake check` checks
+formatting, rejects stale or nondeterministic generated files, and runs the
+parser, policy, workflow, and completion tests.
 
 ## Automated updates
 

@@ -60,7 +60,6 @@ jobs:
           nix flake update llm-agents
           nix develop --command make generate
           nix flake check
-          nix develop --command make check
           python3 -m amp_completions.update_candidate \
             --base-lock /tmp/base-flake.lock \
             --base-manifest /tmp/base-manifest.json \

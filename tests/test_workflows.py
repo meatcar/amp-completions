@@ -27,9 +27,9 @@ class ValidationWorkflowTest(unittest.TestCase):
         self.assertIn("permissions:\n  contents: read", self.workflow)
         self.assertIn("cancel-in-progress: true", self.workflow)
 
-    def test_runs_local_validation_commands(self) -> None:
+    def test_runs_all_validation_through_the_flake(self) -> None:
         self.assertIn("run: nix flake check", self.workflow)
-        self.assertIn("run: nix develop --command make check", self.workflow)
+        self.assertNotIn("make check", self.workflow)
 
     def test_allows_explicit_validation_dispatch(self) -> None:
         self.assertIn("workflow_dispatch:", self.workflow)
@@ -66,7 +66,8 @@ class UpdateWorkflowTest(unittest.TestCase):
     def test_updates_one_reused_branch_after_validation(self) -> None:
         self.assertIn("BRANCH: automation/amp-update", self.workflow)
         self.assertIn("nix flake update llm-agents", self.workflow)
-        self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
+        self.assertLess(self.workflow.index("nix flake check"), self.workflow.index("git push"))
+        self.assertNotIn("make check", self.workflow)
         self.assertIn("gh pr list --state open", self.workflow)
         self.assertIn("gh pr edit", self.workflow)
         self.assertIn("gh pr create", self.workflow)
@@ -128,7 +129,8 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
         self.assertIn("git add flake.lock", self.workflow)
 
     def test_validates_before_push_and_reuses_one_pull_request(self) -> None:
-        self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
+        self.assertLess(self.workflow.index("nix flake check"), self.workflow.index("git push"))
+        self.assertNotIn("make check", self.workflow)
         self.assertIn("gh pr list --state open", self.workflow)
         self.assertIn("gh pr edit", self.workflow)
         self.assertIn("gh pr create", self.workflow)

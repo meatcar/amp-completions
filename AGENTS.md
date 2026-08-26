@@ -17,8 +17,7 @@ amp.yaml           # generated, checked-in completion spec
 
 - `direnv exec .`: run commands
 - `nix fmt`: format (run after every source edit)
-- `nix flake check`: validate flake outputs
-- `make check`: run unit tests and validate `amp.yaml`
+- `nix flake check`: run formatting, unit, completion, and generation checks
 
 ## Nix
 
