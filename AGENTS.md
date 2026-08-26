@@ -4,7 +4,7 @@
 flake.nix          # inputs only
 .envrc             # env init
 nix/flake-modules/ # flake parts: devshell.nix, treefmt.nix
-generate.py        # Amp help parser and Carapace spec generator
+src/amp_completions/ # parser, generator, and update automation
 amp.yaml           # generated, checked-in completion spec
 ```
 

@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BRANCH: automation/flake-update
+      PYTHONPATH: src
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,7 +37,7 @@ jobs:
             echo "update_available=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          python3 flake_update_candidate.py \
+          python3 -m amp_completions.flake_update_candidate \
             --base-lock /tmp/base-flake.lock \
             --input nixpkgs \
             --input flake-parts \

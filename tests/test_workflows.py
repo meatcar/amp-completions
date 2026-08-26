@@ -91,7 +91,7 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertNotIn("gh pr review", self.workflow)
 
     def test_escalates_repeated_failures_and_persists_state(self) -> None:
-        self.assertIn("failure_escalation.py", self.workflow)
+        self.assertIn("python3 -m amp_completions.failure_escalation", self.workflow)
         self.assertIn("amp-update-failure", self.workflow)
         self.assertIn("actions/upload-artifact@", self.workflow)
         self.assertIn("if: always()", self.workflow)
@@ -124,7 +124,7 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
             self.workflow,
         )
         self.assertNotIn("nix flake update llm-agents", self.workflow)
-        self.assertIn("flake_update_candidate.py", self.workflow)
+        self.assertIn("python3 -m amp_completions.flake_update_candidate", self.workflow)
         self.assertIn("git add flake.lock", self.workflow)
 
     def test_validates_before_push_and_reuses_one_pull_request(self) -> None:

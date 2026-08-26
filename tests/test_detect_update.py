@@ -5,7 +5,7 @@ import urllib.error
 from pathlib import Path
 from unittest import mock
 
-import detect_update
+from amp_completions import detect_update
 
 
 class DetectUpdateTest(unittest.TestCase):

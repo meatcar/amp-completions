@@ -1,17 +1,10 @@
-import importlib.util
 import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
 
-
-SPEC = importlib.util.spec_from_file_location(
-    "generate", Path(__file__).parents[1] / "generate.py"
-)
-generate = importlib.util.module_from_spec(SPEC)
-assert SPEC.loader is not None
-SPEC.loader.exec_module(generate)
+from amp_completions import generate
 
 
 HELP = """\

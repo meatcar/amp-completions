@@ -29,8 +29,9 @@ Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}`.
 
 ## How it works
 
-`generate.py` recursively reads `amp --help` and each subcommand's help into
-one command model. That model produces two files:
+[`src/amp_completions/generate.py`](src/amp_completions/generate.py) recursively
+reads `amp --help` and each subcommand's help into one command model. That model
+produces two files:
 
 - `amp.yaml` is the completion spec installed by users.
 - `amp-manifest.json` records canonical command and flag paths for update

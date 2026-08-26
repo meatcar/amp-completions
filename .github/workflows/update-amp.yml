@@ -20,6 +20,7 @@ jobs:
     runs-on: ubuntu-24.04
     env:
       BRANCH: automation/amp-update
+      PYTHONPATH: src
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -39,7 +40,7 @@ jobs:
       - name: Detect upstream version
         id: detect
         run: >-
-          python3 detect_update.py
+          python3 -m amp_completions.detect_update
           --output "$GITHUB_OUTPUT"
       - name: Report available update
         if: steps.detect.outputs.update_available == 'true'
@@ -60,7 +61,7 @@ jobs:
           nix develop --command make generate
           nix flake check
           nix develop --command make check
-          python3 update_candidate.py \
+          python3 -m amp_completions.update_candidate \
             --base-lock /tmp/base-flake.lock \
             --base-manifest /tmp/base-manifest.json \
             --expected-version "$NEW_VERSION" \
@@ -180,7 +181,7 @@ jobs:
             reason=detect-upstream
           fi
           version=${NEW_VERSION:-unknown}
-          python3 failure_escalation.py \
+          python3 -m amp_completions.failure_escalation \
             --previous-state /tmp/previous-failure-state.json \
             --next-state /tmp/failure-state.json \
             --body /tmp/failure-body.md \
