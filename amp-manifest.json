@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1787776913-gb1a751",
+  "amp_version": "0.0.1787858880-ga90ead",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -277,6 +277,7 @@
     "amp config model-providers --json",
     "amp config model-providers --workspace",
     "amp config model-providers add-router --active",
+    "amp config model-providers add-router --api-format",
     "amp config model-providers add-router --api-key-env",
     "amp config model-providers add-router --base-url",
     "amp config model-providers add-router --cloudflare-account-id",
@@ -293,6 +294,7 @@
     "amp config model-providers edit-key --clear-model-mapping",
     "amp config model-providers edit-key --model-mapping",
     "amp config model-providers edit-key --name",
+    "amp config model-providers edit-router --api-format",
     "amp config model-providers edit-router --base-url",
     "amp config model-providers edit-router --clear-model-mapping",
     "amp config model-providers edit-router --cloudflare-account-id",
