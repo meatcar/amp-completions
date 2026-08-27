@@ -1,7 +1,15 @@
 { inputs, ... }:
 {
   perSystem =
-    { inputs', pkgs, ... }:
+    {
+      config,
+      inputs',
+      pkgs,
+      ...
+    }:
+    let
+      generated = config.packages.amp-completions;
+    in
     {
       checks.completions =
         pkgs.runCommand "amp-completions-check"
@@ -20,7 +28,17 @@
             cd source
             export HOME="$TMPDIR/home"
             mkdir -p "$HOME"
-            make check
+            make test
+            python3 -m compileall -q src tests
+            PYTHONPATH=src python3 -m amp_completions.generate \
+              --amp "$AMP_BIN" \
+              --output "$TMPDIR/amp.yaml" \
+              --manifest-output "$TMPDIR/amp-manifest.json"
+            carapace --run "${generated}/share/carapace/specs/amp.yaml" >/dev/null
+            diff -u amp.yaml "${generated}/share/carapace/specs/amp.yaml"
+            diff -u amp-manifest.json "${generated}/share/amp-completions/amp-manifest.json"
+            diff -u "$TMPDIR/amp.yaml" "${generated}/share/carapace/specs/amp.yaml"
+            diff -u "$TMPDIR/amp-manifest.json" "${generated}/share/amp-completions/amp-manifest.json"
             touch "$out"
           '';
     };

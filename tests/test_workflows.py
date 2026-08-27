@@ -66,6 +66,16 @@ class UpdateWorkflowTest(unittest.TestCase):
     def test_updates_one_reused_branch_after_validation(self) -> None:
         self.assertIn("BRANCH: automation/amp-update", self.workflow)
         self.assertIn("nix flake update llm-agents", self.workflow)
+        self.assertIn(
+            "nix build .#amp-completions --no-link --print-out-paths",
+            self.workflow,
+        )
+        self.assertIn('cp "$generated/share/carapace/specs/amp.yaml" amp.yaml', self.workflow)
+        self.assertIn(
+            'cp "$generated/share/amp-completions/amp-manifest.json" amp-manifest.json',
+            self.workflow,
+        )
+        self.assertNotIn("nix develop --command make generate", self.workflow)
         self.assertLess(self.workflow.index("nix flake check"), self.workflow.index("git push"))
         self.assertNotIn("make check", self.workflow)
         self.assertIn("gh pr list --state open", self.workflow)

@@ -58,7 +58,9 @@ jobs:
           cp amp-manifest.json /tmp/base-manifest.json
           git checkout -B "$BRANCH"
           nix flake update llm-agents
-          nix develop --command make generate
+          generated=$(nix build .#amp-completions --no-link --print-out-paths)
+          cp "$generated/share/carapace/specs/amp.yaml" amp.yaml
+          cp "$generated/share/amp-completions/amp-manifest.json" amp-manifest.json
           nix flake check
           python3 -m amp_completions.update_candidate \
             --base-lock /tmp/base-flake.lock \

@@ -22,6 +22,7 @@
         inputs.treefmt-nix.flakeModule
         ./nix/flake-modules/checks.nix
         ./nix/flake-modules/devshell.nix
+        ./nix/flake-modules/package.nix
       ];
       systems = [ "x86_64-linux" ];
     };

@@ -27,6 +27,33 @@ make install
 Open a new shell after installation. `make install` copies `amp.yaml` to the
 Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}`.
 
+### Nix
+
+Build a spec from the Amp package pinned by this flake:
+
+```sh
+nix build github:meatcar/amp-completions
+```
+
+The spec is written to `result/share/carapace/specs/amp.yaml`. A consuming
+flake can select its own Nixpkgs and Amp package by following both inputs:
+
+```nix
+inputs.amp-completions = {
+  url = "github:meatcar/amp-completions";
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.llm-agents.follows = "llm-agents";
+};
+```
+
+Reference the generated file from Home Manager, standalone or as a NixOS
+module, to build it during activation. For example:
+
+```nix
+xdg.configFile."carapace/specs/amp.yaml".source =
+  "${inputs.amp-completions.packages.${pkgs.system}.default}/share/carapace/specs/amp.yaml";
+```
+
 ## How it works
 
 [`src/amp_completions/generate.py`](src/amp_completions/generate.py) recursively

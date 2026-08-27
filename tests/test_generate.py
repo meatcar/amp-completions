@@ -1,5 +1,7 @@
 import json
 import tempfile
+import threading
+import time
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -55,6 +57,41 @@ class ParseHelpTest(unittest.TestCase):
 
     def test_strips_terminal_control_sequences(self) -> None:
         self.assertEqual(generate.ANSI_ESCAPE.sub("", "\x1b[?25hUsage"), "Usage")
+
+
+class InspectAmpTest(unittest.TestCase):
+    def test_inspects_sibling_commands_concurrently_in_source_order(self) -> None:
+        root_help = """\
+Commands:
+  first   First command
+  second  Second command
+Options:
+"""
+        child_help = "Options:\n  -h, --help  display help\n"
+        active = 0
+        maximum_active = 0
+        lock = threading.Lock()
+
+        def run_amp(_amp: str, arguments: list[str]) -> str:
+            nonlocal active, maximum_active
+            if arguments == ["--help"]:
+                return root_help
+            if arguments == ["version"]:
+                return "1.2.3\n"
+            with lock:
+                active += 1
+                maximum_active = max(maximum_active, active)
+            time.sleep(0.02)
+            with lock:
+                active -= 1
+            return child_help
+
+        with mock.patch.object(generate, "run_amp", side_effect=run_amp):
+            root, version = generate.inspect_amp("amp")
+
+        self.assertEqual(version, "1.2.3")
+        self.assertEqual([command.name for command in root.commands], ["first", "second"])
+        self.assertGreater(maximum_active, 1)
 
 
 class RenderTest(unittest.TestCase):
