@@ -54,6 +54,26 @@ xdg.configFile."carapace/specs/amp.yaml".source =
   "${inputs.amp-completions.packages.${pkgs.system}.default}/share/carapace/specs/amp.yaml";
 ```
 
+The Amp package does not need to come from `llm-agents`. Build and install
+completions for any Amp executable in the Nix store with the package
+constructor:
+
+```nix
+let
+  ampCompletions = inputs.amp-completions.lib.mkAmpCompletions {
+    inherit pkgs;
+    amp = "${myAmpPackage}/bin/amp";
+  };
+in
+{
+  xdg.configFile."carapace/specs/amp.yaml".source =
+    "${ampCompletions}/share/carapace/specs/amp.yaml";
+}
+```
+
+The executable must support `amp --help`, nested command help, and
+`amp version`; generation does not make network requests.
+
 ## How it works
 
 [`src/amp_completions/generate.py`](src/amp_completions/generate.py) recursively

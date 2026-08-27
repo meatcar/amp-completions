@@ -9,8 +9,24 @@
     }:
     let
       generated = config.packages.amp-completions;
+      customAmp = pkgs.writeShellScriptBin "amp" ''
+        case "''${1-}" in
+          --help) echo "Options:" ;;
+          version) echo "9.8.7" ;;
+          *) exit 1 ;;
+        esac
+      '';
+      customCompletions = inputs.self.lib.mkAmpCompletions {
+        inherit pkgs;
+        amp = "${customAmp}/bin/amp";
+      };
     in
     {
+      checks.custom-amp = pkgs.runCommand "custom-amp-completions-check" { } ''
+        grep -Fx "# Amp version: 9.8.7" \
+          "${customCompletions}/share/carapace/specs/amp.yaml"
+        touch "$out"
+      '';
       checks.completions =
         pkgs.runCommand "amp-completions-check"
           {
