@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
-
 import argparse
 import difflib
+import os
 import subprocess
 import sys
 import tempfile
@@ -12,10 +11,17 @@ GENERATED_FILES = ("amp.yaml", "amp-manifest.json")
 
 
 def run_generation(root: Path, amp: str, spec: Path, manifest: Path) -> None:
+    root = root.resolve()
+    environment = os.environ.copy()
+    source_path = str(root / "src")
+    if python_path := environment.get("PYTHONPATH"):
+        source_path = os.pathsep.join((source_path, python_path))
+    environment["PYTHONPATH"] = source_path
     subprocess.run(
         [
             sys.executable,
-            str(root / "generate.py"),
+            "-m",
+            "amp_completions.generate",
             "--amp",
             amp,
             "--output",
@@ -24,6 +30,8 @@ def run_generation(root: Path, amp: str, spec: Path, manifest: Path) -> None:
             str(manifest),
         ],
         check=True,
+        cwd=root,
+        env=environment,
     )
 
 
@@ -73,7 +81,7 @@ def check_generated(root: Path, amp: str) -> list[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Verify checked-in generated Amp files")
     parser.add_argument("--amp", default="amp", help="path to the Amp executable")
-    parser.add_argument("--root", type=Path, default=Path(__file__).parent)
+    parser.add_argument("--root", type=Path, default=Path.cwd())
     arguments = parser.parse_args()
 
     errors = check_generated(arguments.root, arguments.amp)

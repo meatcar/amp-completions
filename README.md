@@ -1,103 +1,151 @@
 # Amp completions
 
 Shell completion for the [Amp CLI](https://ampcode.com/manual), generated from
-Amp's own help output and distributed as a
+Amp's own help output and distributed as a checked-in
 [Carapace spec](https://carapace-sh.github.io/carapace-bin/spec.html).
+
+It works with Bash, Zsh, Fish, Nushell, PowerShell, and other shells supported
+by Carapace. Completion is static: pressing Tab does not start Amp, Python, or
+any network request.
+
+```text
+amp th<Tab>        → thread, threads
+amp --mode m<Tab>  → medium
+```
 
 ## Install
 
-Install and configure [Carapace](https://carapace-sh.github.io/carapace-bin/setup.html),
-then copy the spec into its user spec directory:
+First [install and configure Carapace](https://carapace-sh.github.io/carapace-bin/setup.html).
+Then clone this repository and install the spec:
 
 ```sh
+git clone https://github.com/meatcar/amp-completions.git
+cd amp-completions
 make install
 ```
 
-Open a new shell after installing the spec. Carapace supports Bash, Zsh, Fish,
-Nushell, PowerShell, and several other shells.
+Open a new shell after installation. `make install` copies `amp.yaml` to the
+Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}`.
 
-## Generated files
+### Nix
 
-`amp.yaml` and `amp-manifest.json` are generated together from Amp's help
-output. Do not edit either file by hand. `amp.yaml` is the Carapace spec;
-`amp-manifest.json` records command, alias, and flag paths for update policy
-checks.
-
-The pinned Amp package comes from the
-[`llm-agents.nix`](https://github.com/numtide/llm-agents.nix) flake input. The
-development shell exposes that package as `AMP_BIN` without adding an `amp`
-command to `PATH`.
-
-To update the pin and regenerate both files:
+Build a spec from the Amp package pinned by this flake:
 
 ```sh
-nix flake update llm-agents
-nix develop --command make generate
-nix flake check
-nix develop --command make check
+nix build github:meatcar/amp-completions
 ```
 
-The generator recursively calls `amp --help` and each subcommand's help. It
-does not run during completion. `make check` rejects stale or nondeterministic
-generated files and runs the test suite.
+The spec is written to `result/share/carapace/specs/amp.yaml`. A consuming
+flake can select its own Nixpkgs and Amp package by following both inputs:
 
-Use another Amp executable when needed:
+```nix
+inputs.amp-completions = {
+  url = "github:meatcar/amp-completions";
+  inputs.nixpkgs.follows = "nixpkgs";
+  inputs.llm-agents.follows = "llm-agents";
+};
+```
+
+Reference the generated file from Home Manager, standalone or as a NixOS
+module, to build it during activation. For example:
+
+```nix
+xdg.configFile."carapace/specs/amp.yaml".source =
+  "${inputs.amp-completions.packages.${pkgs.system}.default}/share/carapace/specs/amp.yaml";
+```
+
+The Amp package does not need to come from `llm-agents`. Build and install
+completions for any Amp executable in the Nix store with the package
+constructor:
+
+```nix
+let
+  ampCompletions = inputs.amp-completions.lib.mkAmpCompletions {
+    inherit pkgs;
+    amp = "${myAmpPackage}/bin/amp";
+  };
+in
+{
+  xdg.configFile."carapace/specs/amp.yaml".source =
+    "${ampCompletions}/share/carapace/specs/amp.yaml";
+}
+```
+
+The executable must support `amp --help`, nested command help, and
+`amp version`; generation does not make network requests.
+
+## How it works
+
+[`src/amp_completions/generate.py`](src/amp_completions/generate.py) recursively
+reads `amp --help` and each subcommand's help into one command model. That model
+produces two files:
+
+- `amp.yaml` is the completion spec installed by users.
+- `amp-manifest.json` records canonical command and flag paths for update
+  safety checks.
+
+Both files identify the Amp version that produced them. The generator also
+supplies semantic values that help output cannot describe, such as agent modes
+and visibility levels.
+
+The pinned Amp executable comes from
+[`llm-agents.nix`](https://github.com/numtide/llm-agents.nix). Generated output
+is deterministic and checked in, so changes are reviewable without running
+Amp during completion.
+
+## Development
+
+Regenerate the spec through the Nix development shell, then run all checks:
+
+```sh
+nix develop --command make generate
+nix flake check
+```
+
+To test another Amp build:
 
 ```sh
 AMP_BIN=/path/to/amp make generate
 AMP_BIN=/path/to/amp make check
 ```
 
-The generated command tree and flags follow Amp's help output. Semantic values
-that cannot be inferred reliably, such as agent modes and visibility levels,
-are maintained in `generate.py`.
+Do not edit `amp.yaml` or `amp-manifest.json` by hand. `nix flake check` checks
+formatting, rejects stale or nondeterministic generated files, and runs the
+parser, policy, workflow, and completion tests.
 
-## Automation
+## Automated updates
 
-The `Update Amp` workflow checks `llm-agents.nix` at minute 17 of every hour.
-When it finds a new Amp version, it updates the reusable
-`automation/amp-update` branch, regenerates the files, runs the checks, and
-opens or refreshes one pull request.
+- [Update Amp](.github/workflows/update-amp.yml) checks hourly. Additive
+  command and flag changes merge after validation. Removals and other
+  compatibility changes stay open with a concrete review question.
+- [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
+  non-Amp root inputs weekly. It cannot change `llm-agents` or files other than
+  `flake.lock`.
+- Renovate updates SHA-pinned GitHub Actions. It does not update Nix inputs or
+  merge pull requests. Current and pending updates appear in the
+  [Dependency Dashboard](https://github.com/meatcar/amp-completions/issues/14).
 
-The `Update flake inputs` workflow runs every Monday at 05:37 UTC. It updates
-the root `nixpkgs`, `flake-parts`, `flake-root`, and `treefmt-nix` inputs on the
-reusable `automation/flake-update` branch. It rejects changes to `llm-agents`
-or files other than `flake.lock`, then opens a pull request for review with the
-`flake-update` label. Renovate handles only SHA-pinned GitHub Actions and does
-not update Nix inputs or merge pull requests.
+All update candidates run the same checks as pull requests before they are
+pushed. The workflows use scoped GitHub tokens and no repository secrets.
 
-Every generated pull request has `amp-update`. An additive update that passes
-the unattended policy also has `safe-update` and merges after the required
-`validate` check passes. A pull request without `safe-update` stays open. Its
-policy report lists the removed commands, flags, aliases, or other condition
-that needs a decision. `amp-update-failure` marks the issue created after the
-same version fails at the same step twice. A later successful run closes that
-issue.
+### Maintainer notes
 
-The workflows use no repository secrets. They use GitHub's per-run token with
-these permissions:
-
-- Validation has `contents: read` to check out the repository.
-- Update has `contents: write` to maintain the candidate branch,
-  `pull-requests: write` to create, label, and queue its pull request,
-  `actions: write` to rerun the pull-request validation suppressed for
-  GitHub-authored commits, and `issues: write` for repeated-failure reports.
-
-### Maintainer operations
-
-Run detection immediately:
+Run either updater manually:
 
 ```sh
 gh workflow run update-amp.yml --ref main
-gh run list --workflow update-amp.yml --limit 5
+gh workflow run update-flake-inputs.yml --ref main
 ```
 
-A failed candidate is not pushed. Fix the reported step, then rerun the
-workflow. It reuses the existing branch and pull request. Repeated failures
-also link their run from one `amp-update-failure` issue.
+Rerun the owning workflow to rebuild a failed, stale, or conflicting candidate
+from current `main`; do not edit generated branches. `flake-update` and
+Renovate pull requests always require review. Amp pull requests without
+`safe-update` require a compatibility decision.
 
-For a pull request with `amp-update` but no `safe-update`, read the policy
-report before merging. If an upstream removal is expected, verify the named
-paths and merge after `validate` passes. If the report names parser
-incompatibility, nondeterminism, an undeclared file, or an unexpected lock
-change, fix the generator or workflow and rerun instead.
+The reusable `automation/amp-update` and `automation/flake-update` branches may
+appear beside `main` after squash merges. Either may be deleted when it has no
+open pull request; its workflow recreates it when needed.
+
+## License
+
+[MIT](LICENSE)

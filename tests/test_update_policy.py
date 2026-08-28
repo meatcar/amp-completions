@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import update_policy
+from amp_completions import update_policy
 
 
 BASE_MANIFEST = {

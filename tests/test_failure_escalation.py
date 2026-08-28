@@ -1,6 +1,6 @@
 import unittest
 
-import failure_escalation
+from amp_completions import failure_escalation
 
 
 class FailureEscalationTest(unittest.TestCase):

@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-import check_generated
+from amp_completions import check_generated
 
 
 class CheckGeneratedTest(unittest.TestCase):

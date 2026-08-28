@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-import update_candidate
+from amp_completions import update_candidate
 
 
 BASE_LOCK = {

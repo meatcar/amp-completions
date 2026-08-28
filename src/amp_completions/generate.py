@@ -1,8 +1,8 @@
-#!/usr/bin/env python3
-
 import argparse
+import concurrent.futures
 import dataclasses
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -116,23 +116,30 @@ def normalize_option(declaration: str) -> str:
     return OPTION_ARGUMENT.sub("", declaration) + suffix
 
 
-def inspect_command(amp: str, path: list[str], summary: Command) -> Command:
-    help_text = run_amp(amp, [*path, "--help"])
-    summary.options = parse_options(help_text)
-    summary.commands = [
-        inspect_command(amp, [*path, child.name], child)
-        for child in parse_commands(help_text)
-    ]
-    return summary
-
-
 def inspect_amp(amp: str) -> tuple[Command, str]:
-    help_text = run_amp(amp, ["--help"])
-    root = Command("amp", "Amp CLI", options=parse_options(help_text))
-    root.commands = [
-        inspect_command(amp, [child.name], child) for child in parse_commands(help_text)
-    ]
-    version = run_amp(amp, ["version"]).split()[0]
+    workers = min(16, (os.cpu_count() or 1) + 4)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
+        version_result = executor.submit(run_amp, amp, ["version"])
+        help_text = run_amp(amp, ["--help"])
+        root = Command("amp", "Amp CLI", options=parse_options(help_text))
+        root.commands = parse_commands(help_text)
+        frontier = [([command.name], command) for command in root.commands]
+
+        while frontier:
+            help_texts = executor.map(
+                lambda item: run_amp(amp, [*item[0], "--help"]),
+                frontier,
+            )
+            next_frontier = []
+            for (path, command), command_help in zip(frontier, help_texts, strict=True):
+                command.options = parse_options(command_help)
+                command.commands = parse_commands(command_help)
+                next_frontier.extend(
+                    ([*path, child.name], child) for child in command.commands
+                )
+            frontier = next_frontier
+
+        version = version_result.result().split()[0]
     return root, version
 
 

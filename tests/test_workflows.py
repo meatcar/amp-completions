@@ -27,9 +27,9 @@ class ValidationWorkflowTest(unittest.TestCase):
         self.assertIn("permissions:\n  contents: read", self.workflow)
         self.assertIn("cancel-in-progress: true", self.workflow)
 
-    def test_runs_local_validation_commands(self) -> None:
+    def test_runs_all_validation_through_the_flake(self) -> None:
         self.assertIn("run: nix flake check", self.workflow)
-        self.assertIn("run: nix develop --command make check", self.workflow)
+        self.assertNotIn("make check", self.workflow)
 
     def test_allows_explicit_validation_dispatch(self) -> None:
         self.assertIn("workflow_dispatch:", self.workflow)
@@ -41,7 +41,7 @@ class UpdateWorkflowTest(unittest.TestCase):
         cls.workflow = (ROOT / ".github/workflows/update-amp.yml").read_text()
 
     def test_runs_hourly_and_manually(self) -> None:
-        self.assertRegex(self.workflow, r'cron: ["\']17 \* \* \* \*["\']')
+        self.assertRegex(self.workflow, r'cron: ["\']\d+ \* \* \* \*["\']')
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
@@ -66,7 +66,18 @@ class UpdateWorkflowTest(unittest.TestCase):
     def test_updates_one_reused_branch_after_validation(self) -> None:
         self.assertIn("BRANCH: automation/amp-update", self.workflow)
         self.assertIn("nix flake update llm-agents", self.workflow)
-        self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
+        self.assertIn(
+            "nix build .#amp-completions --no-link --print-out-paths",
+            self.workflow,
+        )
+        self.assertIn('cp "$generated/share/carapace/specs/amp.yaml" amp.yaml', self.workflow)
+        self.assertIn(
+            'cp "$generated/share/amp-completions/amp-manifest.json" amp-manifest.json',
+            self.workflow,
+        )
+        self.assertNotIn("nix develop --command make generate", self.workflow)
+        self.assertLess(self.workflow.index("nix flake check"), self.workflow.index("git push"))
+        self.assertNotIn("make check", self.workflow)
         self.assertIn("gh pr list --state open", self.workflow)
         self.assertIn("gh pr edit", self.workflow)
         self.assertIn("gh pr create", self.workflow)
@@ -91,7 +102,7 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertNotIn("gh pr review", self.workflow)
 
     def test_escalates_repeated_failures_and_persists_state(self) -> None:
-        self.assertIn("failure_escalation.py", self.workflow)
+        self.assertIn("python3 -m amp_completions.failure_escalation", self.workflow)
         self.assertIn("amp-update-failure", self.workflow)
         self.assertIn("actions/upload-artifact@", self.workflow)
         self.assertIn("if: always()", self.workflow)
@@ -103,7 +114,7 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
         cls.workflow = (ROOT / ".github/workflows/update-flake-inputs.yml").read_text()
 
     def test_runs_weekly_and_manually(self) -> None:
-        self.assertRegex(self.workflow, r'cron: ["\']37 5 \* \* 1["\']')
+        self.assertRegex(self.workflow, r'cron: ["\']\d+ \d+ \* \* \d["\']')
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
@@ -124,11 +135,12 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
             self.workflow,
         )
         self.assertNotIn("nix flake update llm-agents", self.workflow)
-        self.assertIn("flake_update_candidate.py", self.workflow)
+        self.assertIn("python3 -m amp_completions.flake_update_candidate", self.workflow)
         self.assertIn("git add flake.lock", self.workflow)
 
     def test_validates_before_push_and_reuses_one_pull_request(self) -> None:
-        self.assertLess(self.workflow.index("nix develop --command make check"), self.workflow.index("git push"))
+        self.assertLess(self.workflow.index("nix flake check"), self.workflow.index("git push"))
+        self.assertNotIn("make check", self.workflow)
         self.assertIn("gh pr list --state open", self.workflow)
         self.assertIn("gh pr edit", self.workflow)
         self.assertIn("gh pr create", self.workflow)

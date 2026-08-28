@@ -1,7 +1,7 @@
 import copy
 import unittest
 
-import flake_update_candidate
+from amp_completions import flake_update_candidate
 
 
 BASE_LOCK = {

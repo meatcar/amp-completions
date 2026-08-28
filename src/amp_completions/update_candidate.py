@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import argparse
 import json
 import subprocess
 from pathlib import Path
 
-import update_policy
+from . import update_policy
 
 
 ALLOWED_FILES = frozenset({"amp-manifest.json", "amp.yaml", "flake.lock"})
