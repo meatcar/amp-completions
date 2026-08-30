@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1787858880-ga90ead",
+  "amp_version": "0.0.1788033637-g4c86ff",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -30,6 +30,13 @@
     ],
     "amp projects delete": [
       "rm"
+    ],
+    "amp projects snapshots delete": [
+      "rm"
+    ],
+    "amp report-bug": [
+      "diagnostics",
+      "report"
     ],
     "amp secrets delete": [
       "rm"
@@ -177,9 +184,12 @@
     "amp projects gallery-media set",
     "amp projects get",
     "amp projects list",
+    "amp projects snapshots",
+    "amp projects snapshots delete",
+    "amp projects snapshots list",
     "amp projects status",
     "amp projects update",
-    "amp report",
+    "amp report-bug",
     "amp secrets",
     "amp secrets delete",
     "amp secrets get",
@@ -212,7 +222,6 @@
     "amp threads new",
     "amp threads raw",
     "amp threads rename",
-    "amp threads report",
     "amp threads search",
     "amp threads share",
     "amp threads share multiplayer",
@@ -278,7 +287,7 @@
     "amp config model-providers --workspace",
     "amp config model-providers add-router --active",
     "amp config model-providers add-router --api-format",
-    "amp config model-providers add-router --api-key-env",
+    "amp config model-providers add-router --api-key-file",
     "amp config model-providers add-router --base-url",
     "amp config model-providers add-router --cloudflare-account-id",
     "amp config model-providers add-router --cloudflare-gateway-id",
@@ -295,6 +304,7 @@
     "amp config model-providers edit-key --model-mapping",
     "amp config model-providers edit-key --name",
     "amp config model-providers edit-router --api-format",
+    "amp config model-providers edit-router --api-key-file",
     "amp config model-providers edit-router --base-url",
     "amp config model-providers edit-router --clear-model-mapping",
     "amp config model-providers edit-router --cloudflare-account-id",
@@ -394,6 +404,9 @@
     "amp projects delete --yes",
     "amp projects get --json",
     "amp projects list --json",
+    "amp projects snapshots delete --json",
+    "amp projects snapshots delete --resource",
+    "amp projects snapshots list --json",
     "amp projects status --json",
     "amp projects update --commit-author",
     "amp projects update --custom-ship-prompt-file",
