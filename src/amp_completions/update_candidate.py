@@ -7,6 +7,7 @@ from . import update_policy
 
 
 ALLOWED_FILES = frozenset({"amp-manifest.json", "amp.yaml", "flake.lock"})
+UNATTENDED_CLASSIFICATIONS = frozenset({"compatibility-change", "safe"})
 
 
 def dependency_closure(nodes: dict[str, object], root: str) -> set[str]:
@@ -90,6 +91,14 @@ def validate_changed_files(changed_files: set[str]) -> None:
         raise ValueError("candidate has no changes")
 
 
+def require_unattended(result: update_policy.PolicyResult) -> None:
+    if result.classification not in UNATTENDED_CLASSIFICATIONS:
+        reasons = "; ".join(result.reasons) or "no reason provided"
+        raise ValueError(
+            f"candidate classification {result.classification} cannot merge unattended: {reasons}"
+        )
+
+
 def build_pr_body(
     old_version: str,
     new_version: str,
@@ -157,6 +166,7 @@ def main() -> int:
         changed_files=changed_files,
         generated_diff_lines=count_generated_diff_lines(),
     )
+    require_unattended(result)
     policy_markdown = update_policy.render_markdown(result)
     arguments.policy_json.write_text(json.dumps(result.as_dict(), sort_keys=True) + "\n")
     arguments.policy_markdown.write_text(policy_markdown)

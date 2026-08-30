@@ -48,32 +48,40 @@ def classify_update(
     parser_compatible: bool = True,
     generated_diff_lines: int = 0,
 ) -> PolicyResult:
-    reasons = []
+    blocking_reasons = []
 
     for path in sorted(changed_files - ALLOWED_UPDATE_FILES):
-        reasons.append(f"update changes undeclared file: {path}")
+        blocking_reasons.append(f"update changes undeclared file: {path}")
     if not deterministic:
-        reasons.append("generation is not deterministic")
+        blocking_reasons.append("generation is not deterministic")
     if not parser_compatible:
-        reasons.append("Amp help output is incompatible with the parser")
+        blocking_reasons.append("Amp help output is incompatible with the parser")
     if generated_diff_lines > MAX_GENERATED_DIFF_LINES:
-        reasons.append(f"generated diff exceeds {MAX_GENERATED_DIFF_LINES} lines")
+        blocking_reasons.append(f"generated diff exceeds {MAX_GENERATED_DIFF_LINES} lines")
 
     manifest_errors = [
         *validate_manifest(base, "base"),
         *validate_manifest(candidate, "candidate"),
     ]
     if manifest_errors:
-        return PolicyResult("review-required", tuple([*reasons, *manifest_errors]))
+        return PolicyResult(
+            "review-required", tuple([*blocking_reasons, *manifest_errors])
+        )
 
     assert isinstance(base, dict)
     assert isinstance(candidate, dict)
+    compatibility_reasons = []
     old_version = parse_version(base["amp_version"])
     new_version = parse_version(candidate["amp_version"])
     assert old_version is not None and new_version is not None
     if new_version < old_version:
-        reasons.append(
+        blocking_reasons.append(
             f"Amp version rolls back from {base['amp_version']} to {candidate['amp_version']}"
+        )
+    elif new_version == old_version and candidate["amp_version"] != base["amp_version"]:
+        blocking_reasons.append(
+            "Amp version changed without advancing from "
+            f"{base['amp_version']} to {candidate['amp_version']}"
         )
 
     path_kinds = (
@@ -85,9 +93,11 @@ def classify_update(
         old_paths = set(base[key])
         new_paths = set(candidate[key])
         if kind in {"command", "flag"} and len(new_paths) < len(old_paths):
-            reasons.append(f"{kind} count dropped from {len(old_paths)} to {len(new_paths)}")
+            compatibility_reasons.append(
+                f"{kind} count dropped from {len(old_paths)} to {len(new_paths)}"
+            )
         for path in sorted(old_paths - new_paths):
-            reasons.append(f"removed {kind} path: {path}")
+            compatibility_reasons.append(f"removed {kind} path: {path}")
 
     old_aliases = base["command_aliases"]
     new_aliases = candidate["command_aliases"]
@@ -95,10 +105,17 @@ def classify_update(
     for command_path, aliases in old_aliases.items():
         new_command_aliases = set(new_aliases.get(command_path, []))
         for alias in sorted(set(aliases) - new_command_aliases):
-            reasons.append(f"removed command alias: {command_path} -> {alias}")
+            compatibility_reasons.append(
+                f"removed command alias: {command_path} -> {alias}"
+            )
 
-    classification = "review-required" if reasons else "safe"
-    return PolicyResult(classification, tuple(reasons))
+    if blocking_reasons:
+        return PolicyResult(
+            "review-required", tuple([*blocking_reasons, *compatibility_reasons])
+        )
+    if compatibility_reasons:
+        return PolicyResult("compatibility-change", tuple(compatibility_reasons))
+    return PolicyResult("safe", ())
 
 
 def parse_version(value: object) -> tuple[int, int, int] | None:
@@ -164,9 +181,15 @@ def render_markdown(result: PolicyResult) -> str:
     if result.classification == "safe":
         return "## Update policy: safe\n\nSafe additive update.\n"
     reasons = "\n".join(f"- {reason}" for reason in result.reasons)
+    if result.classification == "compatibility-change":
+        return (
+            "## Update policy: compatibility changes\n\n"
+            "This validated update will merge automatically. Compatibility changes:\n\n"
+            f"{reasons}\n"
+        )
     return (
         "## Update policy: review required\n\n"
-        "Are these compatibility changes expected for this Amp release?\n\n"
+        "This update cannot merge automatically:\n\n"
         f"{reasons}\n"
     )
 

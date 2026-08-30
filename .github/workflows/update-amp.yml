@@ -70,6 +70,8 @@ jobs:
             --policy-markdown /tmp/policy.md \
             --pr-body /tmp/pr-body.md \
             --output "$GITHUB_OUTPUT"
+          echo "base_sha=$(git rev-parse origin/${{ github.event.repository.default_branch }})" \
+            >> "$GITHUB_OUTPUT"
       - name: Push validated candidate
         if: steps.detect.outputs.update_available == 'true'
         id: push
@@ -123,13 +125,18 @@ jobs:
             exit 1
           fi
           gh run rerun "$validation_run"
-      - name: Label and queue safe update
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "validation_run=$validation_run" >> "$GITHUB_OUTPUT"
+      - name: Label and merge validated update
         if: steps.detect.outputs.update_available == 'true'
         id: label
         env:
+          BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
           CLASSIFICATION: ${{ steps.candidate.outputs.classification }}
           GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
           PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+          VALIDATION_RUN: ${{ steps.pull-request.outputs.validation_run }}
         run: |
           gh label create amp-update \
             --color 1d76db \
@@ -142,10 +149,19 @@ jobs:
           gh pr edit "$PULL_REQUEST" --add-label amp-update
           if [ "$CLASSIFICATION" = safe ]; then
             gh pr edit "$PULL_REQUEST" --add-label safe-update
-            gh pr merge "$PULL_REQUEST" --auto --squash
           elif gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name' | grep -Fxq safe-update; then
             gh pr edit "$PULL_REQUEST" --remove-label safe-update
           fi
+          gh run watch "$VALIDATION_RUN" --exit-status
+          gh pr checks "$PULL_REQUEST" --required
+          latest_base_sha=$(gh api \
+            "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" \
+            --jq '.object.sha')
+          if [ "$latest_base_sha" != "$BASE_SHA" ]; then
+            echo "Base branch advanced from $BASE_SHA to $latest_base_sha; next run will rebuild" >&2
+            exit 1
+          fi
+          gh pr merge "$PULL_REQUEST" --squash --match-head-commit "$HEAD_SHA"
       - name: Update failure state
         if: always()
         id: escalation
@@ -175,7 +191,7 @@ jobs:
               reason=create-pull-request
             elif [ "$LABEL_OUTCOME" != success ]; then
               status=failure
-              reason=label-or-auto-merge
+              reason=label-or-merge
             fi
           elif [ "$DETECTOR_STATUS" != no-update ]; then
             status=failure

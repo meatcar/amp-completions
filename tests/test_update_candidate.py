@@ -1,7 +1,12 @@
 import copy
+import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
+from unittest import mock
 
-from amp_completions import update_candidate
+from amp_completions import update_candidate, update_policy
 
 
 BASE_LOCK = {
@@ -25,6 +30,78 @@ BASE_LOCK = {
 
 
 class UpdateCandidateTest(unittest.TestCase):
+    def test_allows_only_unattended_policy_classifications(self) -> None:
+        update_candidate.require_unattended(update_policy.PolicyResult("safe", ()))
+        update_candidate.require_unattended(
+            update_policy.PolicyResult("compatibility-change", ("removed command",))
+        )
+
+        with self.assertRaisesRegex(ValueError, "unexpected-policy"):
+            update_candidate.require_unattended(
+                update_policy.PolicyResult("unexpected-policy", ("unknown result",))
+            )
+
+    def test_blocked_candidate_writes_no_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            base_lock = root / "base-lock.json"
+            base_manifest = root / "base-manifest.json"
+            policy_json = root / "policy.json"
+            policy_markdown = root / "policy.md"
+            pr_body = root / "pr-body.md"
+            output = root / "output"
+            base_lock.write_text(json.dumps(BASE_LOCK))
+            base_manifest.write_text(json.dumps({"amp_version": "1.2.3"}))
+            (root / "flake.lock").write_text(json.dumps(BASE_LOCK))
+            (root / "amp-manifest.json").write_text(json.dumps({"amp_version": "1.2.4"}))
+
+            arguments = [
+                "update_candidate.py",
+                "--base-lock",
+                str(base_lock),
+                "--base-manifest",
+                str(base_manifest),
+                "--expected-version",
+                "1.2.4",
+                "--policy-json",
+                str(policy_json),
+                "--policy-markdown",
+                str(policy_markdown),
+                "--pr-body",
+                str(pr_body),
+                "--output",
+                str(output),
+            ]
+            previous_directory = Path.cwd()
+            try:
+                os.chdir(root)
+                with (
+                    mock.patch("sys.argv", arguments),
+                    mock.patch.object(update_candidate, "validate_lock_update", return_value="rev"),
+                    mock.patch.object(
+                        update_candidate,
+                        "git_output",
+                        return_value="amp-manifest.json\namp.yaml\nflake.lock\n",
+                    ),
+                    mock.patch.object(update_candidate, "count_generated_diff_lines", return_value=1),
+                    mock.patch.object(
+                        update_policy,
+                        "classify_update",
+                        return_value=update_policy.PolicyResult(
+                            "review-required", ("blocked",)
+                        ),
+                    ),
+                ):
+                    with self.assertRaisesRegex(ValueError, "review-required"):
+                        update_candidate.main()
+            finally:
+                os.chdir(previous_directory)
+
+            self.assertFalse(policy_json.exists())
+            self.assertFalse(policy_markdown.exists())
+            self.assertFalse(pr_body.exists())
+            self.assertFalse(output.exists())
+
     def test_accepts_only_llm_agents_lock_change(self) -> None:
         candidate = copy.deepcopy(BASE_LOCK)
         candidate["nodes"]["llm-agents"]["locked"]["rev"] = "new"
