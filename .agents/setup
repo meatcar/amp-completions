@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+## Provision a fresh Amp orb with the repository's Nix development shell.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+. .agents/lib.sh
+eval "$(tool_env)"
+normalize_proxy_env
+
+step git
+signer="$(command -v amp-sign-commit || true)"
+if [ -n "$signer" ]; then
+  # Nix formatter checks create disposable commits with a temporary HOME. Keep
+  # those unsigned while preserving signed commits for the orb user.
+  sudo git config --system gpg.ssh.program "$signer"
+  sudo git config --system commit.gpgsign false
+  git config --global commit.gpgsign true
+  info "configured the orb commit signer with an absolute path"
+fi
+
+step devshell
+SECONDS=0
+install_nix
+devshell_activate
+info "devshell ready (${SECONDS}s)"
+
+step environment
+repo_root="$PWD"
+{
+  tool_env
+  # shellcheck disable=SC2016 # deliberately expanded by future login shells
+  printf 'export PATH="%s:$HOME/.nix-profile/bin:$PATH"\n' "$(dirname "$NIX_PROFILE")"
+  # shellcheck disable=SC2016 # deliberately expanded by future agent shells
+  printf 'command -v direnv >/dev/null 2>&1 && eval "$(direnv hook bash)"\n'
+} >"$AGENT_ENV"
+
+grep -qF "$AGENT_ENV" "$HOME/.bashrc" 2>/dev/null ||
+  printf '\n[ -f %s ] && . %s\n' "$AGENT_ENV" "$AGENT_ENV" >>"$HOME/.bashrc"
+
+profile_marker="# amp-completions orb environment"
+if ! grep -Fqx "$profile_marker" "$HOME/.bash_profile" 2>/dev/null; then
+  cat >>"$HOME/.bash_profile" <<EOF
+
+$profile_marker
+if [[ "\${PWD}" == "$repo_root" ]]; then
+  [ -f "$AGENT_ENV" ] && . "$AGENT_ENV"
+  if command -v direnv >/dev/null 2>&1; then
+    direnv allow "$repo_root" >/dev/null 2>&1
+    eval "\$(direnv export bash 2>/dev/null)"
+  fi
+fi
+EOF
+fi
+info "persisted the devshell for agent and login shells"
