@@ -115,9 +115,12 @@ parser, policy, workflow, and completion tests.
 
 ## Automated updates
 
-- [Update Amp](.github/workflows/update-amp.yml) checks hourly. Additive
-  command and flag changes merge after validation. Removals and other
-  compatibility changes stay open with a concrete review question.
+- [Update Amp](.github/workflows/update-amp.yml) checks hourly. Every generated
+  update that passes the parser, determinism, scope, size, and full flake checks
+  merges automatically if `main` still matches the revision that was checked.
+  Command and flag removals remain visible in the pull request but do not
+  require maintainer input. If `main` advances during validation, the next
+  hourly run rebuilds the candidate instead of merging stale validation.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly. It cannot change `llm-agents` or files other than
   `flake.lock`.
@@ -139,8 +142,8 @@ gh workflow run update-flake-inputs.yml --ref main
 
 Rerun the owning workflow to rebuild a failed, stale, or conflicting candidate
 from current `main`; do not edit generated branches. `flake-update` and
-Renovate pull requests always require review. Amp pull requests without
-`safe-update` require a compatibility decision.
+Renovate pull requests always require review. `safe-update` marks additive Amp
+updates; validated compatibility changes also merge automatically.
 
 The reusable `automation/amp-update` and `automation/flake-update` branches may
 appear beside `main` after squash merges. Either may be deleted when it has no

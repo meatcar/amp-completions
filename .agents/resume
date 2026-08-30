@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+## Check a resumed Amp orb without installing or changing dependencies.
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+. .agents/lib.sh
+eval "$(tool_env)"
+[ ! -f "$AGENT_ENV" ] || . "$AGENT_ENV"
+normalize_proxy_env
+
+step environment
+if [ ! -x "$NIX_PROFILE" ] || ! command -v direnv >/dev/null 2>&1; then
+  warn "devshell unavailable; run .agents/setup"
+elif ! devshell_reload; then
+  warn "devshell activation failed; run .agents/setup"
+elif ! command -v carapace >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+  warn "devshell is incomplete; run .agents/setup"
+else
+  info "orb environment ready"
+fi

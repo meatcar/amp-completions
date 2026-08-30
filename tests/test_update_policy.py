@@ -45,37 +45,40 @@ class UpdatePolicyTest(unittest.TestCase):
 
         self.assertEqual(result.as_dict(), {"classification": "safe", "reasons": []})
 
-    def test_rejects_command_removal(self) -> None:
+    def test_marks_command_removal_as_compatible_with_unattended_updates(self) -> None:
         result = update_policy.classify_update(
             BASE_MANIFEST,
             candidate(command_paths=["amp"]),
         )
 
-        self.assertEqual(result.classification, "review-required")
+        self.assertEqual(result.classification, "compatibility-change")
         self.assertIn("removed command path: amp threads", result.reasons)
 
-    def test_rejects_flag_removal(self) -> None:
+    def test_marks_flag_removal_as_compatibility_change(self) -> None:
         result = update_policy.classify_update(
             BASE_MANIFEST,
             candidate(flag_paths=["amp --help"]),
         )
 
+        self.assertEqual(result.classification, "compatibility-change")
         self.assertIn("removed flag path: amp threads --limit", result.reasons)
 
-    def test_rejects_alias_removal(self) -> None:
+    def test_marks_alias_removal_as_compatibility_change(self) -> None:
         result = update_policy.classify_update(
             BASE_MANIFEST,
             candidate(command_aliases={}),
         )
 
+        self.assertEqual(result.classification, "compatibility-change")
         self.assertIn("removed command alias: amp threads -> t", result.reasons)
 
-    def test_rejects_persistent_flag_removal(self) -> None:
+    def test_marks_persistent_flag_removal_as_compatibility_change(self) -> None:
         result = update_policy.classify_update(
             BASE_MANIFEST,
             candidate(persistent_flag_paths=[]),
         )
 
+        self.assertEqual(result.classification, "compatibility-change")
         self.assertIn("removed persistent flag path: amp --help", result.reasons)
 
     def test_rejects_version_rollback(self) -> None:
@@ -84,7 +87,20 @@ class UpdatePolicyTest(unittest.TestCase):
             candidate(amp_version="1.2.2"),
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("Amp version rolls back from 1.2.3 to 1.2.2", result.reasons)
+
+    def test_rejects_ambiguous_version_change(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(amp_version="1.2.3-gdifferent"),
+        )
+
+        self.assertEqual(result.classification, "review-required")
+        self.assertIn(
+            "Amp version changed without advancing from 1.2.3 to 1.2.3-gdifferent",
+            result.reasons,
+        )
 
     def test_rejects_command_and_flag_count_drops(self) -> None:
         result = update_policy.classify_update(
@@ -101,6 +117,7 @@ class UpdatePolicyTest(unittest.TestCase):
             candidate(command_paths="amp"),
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("candidate manifest command_paths must be a list of unique strings", result.reasons)
 
     def test_rejects_unknown_manifest_field(self) -> None:
@@ -109,6 +126,7 @@ class UpdatePolicyTest(unittest.TestCase):
             candidate(unrecognized=True),
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("candidate manifest has unknown field: unrecognized", result.reasons)
 
     def test_rejects_parser_incompatibility(self) -> None:
@@ -118,6 +136,7 @@ class UpdatePolicyTest(unittest.TestCase):
             parser_compatible=False,
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("Amp help output is incompatible with the parser", result.reasons)
 
     def test_rejects_nondeterministic_generation(self) -> None:
@@ -127,6 +146,7 @@ class UpdatePolicyTest(unittest.TestCase):
             deterministic=False,
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("generation is not deterministic", result.reasons)
 
     def test_rejects_undeclared_file(self) -> None:
@@ -136,6 +156,7 @@ class UpdatePolicyTest(unittest.TestCase):
             changed_files={"amp.yaml", "README.md"},
         )
 
+        self.assertEqual(result.classification, "review-required")
         self.assertIn("update changes undeclared file: README.md", result.reasons)
 
     def test_generated_diff_limit_boundary(self) -> None:
@@ -151,6 +172,7 @@ class UpdatePolicyTest(unittest.TestCase):
         )
 
         self.assertEqual(accepted.classification, "safe")
+        self.assertEqual(rejected.classification, "review-required")
         self.assertIn(
             f"generated diff exceeds {update_policy.MAX_GENERATED_DIFF_LINES} lines",
             rejected.reasons,
@@ -161,8 +183,8 @@ class UpdatePolicyTest(unittest.TestCase):
 
         report = update_policy.render_markdown(result)
 
-        self.assertIn("## Update policy: review required", report)
-        self.assertIn("Are these compatibility changes expected for this Amp release?", report)
+        self.assertIn("## Update policy: compatibility changes", report)
+        self.assertIn("This validated update will merge automatically.", report)
         self.assertIn("- removed command path: amp threads", report)
 
     def test_cli_emits_json_and_markdown(self) -> None:

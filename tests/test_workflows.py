@@ -93,12 +93,17 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertIn('gh run rerun "$validation_run"', self.workflow)
         self.assertNotIn('gh workflow run validate.yml --ref "$BRANCH"', self.workflow)
 
-    def test_labels_every_update_and_auto_merges_only_safe_updates(self) -> None:
+    def test_merges_validated_update_only_against_its_checked_base(self) -> None:
         self.assertIn("gh pr edit \"$PULL_REQUEST\" --add-label amp-update", self.workflow)
         self.assertIn('if [ "$CLASSIFICATION" = safe ]; then', self.workflow)
         self.assertIn("--add-label safe-update", self.workflow)
-        self.assertIn("gh pr merge \"$PULL_REQUEST\" --auto --squash", self.workflow)
         self.assertIn("--remove-label safe-update", self.workflow)
+        self.assertIn('gh run watch "$VALIDATION_RUN" --exit-status', self.workflow)
+        self.assertIn('gh pr checks "$PULL_REQUEST" --required', self.workflow)
+        self.assertIn("base_sha=$(git rev-parse origin/", self.workflow)
+        self.assertIn('if [ "$latest_base_sha" != "$BASE_SHA" ]; then', self.workflow)
+        self.assertIn('--match-head-commit "$HEAD_SHA"', self.workflow)
+        self.assertNotIn("gh pr merge \"$PULL_REQUEST\" --auto", self.workflow)
         self.assertNotIn("gh pr review", self.workflow)
 
     def test_escalates_repeated_failures_and_persists_state(self) -> None:
