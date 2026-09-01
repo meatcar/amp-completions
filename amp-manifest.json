@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788209835-ga42c93",
+  "amp_version": "0.0.1788214426-g044455",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -112,6 +112,7 @@
     "amp config model-providers activate",
     "amp config model-providers add-chatgpt-subscription",
     "amp config model-providers add-router",
+    "amp config model-providers check-access",
     "amp config model-providers deactivate",
     "amp config model-providers delete",
     "amp config model-providers edit-key",
@@ -132,7 +133,6 @@
     "amp files",
     "amp files get",
     "amp git-setup",
-    "amp inference-test",
     "amp last",
     "amp login",
     "amp logout",
@@ -304,6 +304,9 @@
     "amp config model-providers add-router --router-options",
     "amp config model-providers add-router --workload-identity-provider",
     "amp config model-providers add-router --workspace",
+    "amp config model-providers check-access --provider-key",
+    "amp config model-providers check-access --provider-model",
+    "amp config model-providers check-access --thread",
     "amp config model-providers deactivate --yes",
     "amp config model-providers edit-key --clear-model-mapping",
     "amp config model-providers edit-key --model-mapping",
@@ -342,9 +345,6 @@
     "amp domains remove --yes",
     "amp files get --output",
     "amp git-setup --uninstall",
-    "amp inference-test --provider-key",
-    "amp inference-test --provider-model",
-    "amp inference-test --thread",
     "amp mcp add --env",
     "amp mcp add --header",
     "amp mcp add --workspace",
