@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788214426-g044455",
+  "amp_version": "0.0.1788249635-gcc0420",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -304,6 +304,7 @@
     "amp config model-providers add-router --router-options",
     "amp config model-providers add-router --workload-identity-provider",
     "amp config model-providers add-router --workspace",
+    "amp config model-providers check-access --prompt",
     "amp config model-providers check-access --provider-key",
     "amp config model-providers check-access --provider-model",
     "amp config model-providers check-access --thread",
