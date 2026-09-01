@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788249635-gcc0420",
+  "amp_version": "0.0.1788279758-ge2ac2e",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -290,12 +290,14 @@
     "amp config model-providers add-router --active",
     "amp config model-providers add-router --api-format",
     "amp config model-providers add-router --api-key-file",
+    "amp config model-providers add-router --aws-region",
     "amp config model-providers add-router --base-url",
     "amp config model-providers add-router --cloudflare-account-id",
     "amp config model-providers add-router --cloudflare-gateway-id",
     "amp config model-providers add-router --google-cloud-location",
     "amp config model-providers add-router --google-cloud-project",
     "amp config model-providers add-router --headers",
+    "amp config model-providers add-router --iam-role-arn",
     "amp config model-providers add-router --model-mapping",
     "amp config model-providers add-router --name",
     "amp config model-providers add-router --no-active",
@@ -314,6 +316,7 @@
     "amp config model-providers edit-key --name",
     "amp config model-providers edit-router --api-format",
     "amp config model-providers edit-router --api-key-file",
+    "amp config model-providers edit-router --aws-region",
     "amp config model-providers edit-router --base-url",
     "amp config model-providers edit-router --clear-model-mapping",
     "amp config model-providers edit-router --cloudflare-account-id",
@@ -321,6 +324,7 @@
     "amp config model-providers edit-router --google-cloud-location",
     "amp config model-providers edit-router --google-cloud-project",
     "amp config model-providers edit-router --headers",
+    "amp config model-providers edit-router --iam-role-arn",
     "amp config model-providers edit-router --model-mapping",
     "amp config model-providers edit-router --name",
     "amp config model-providers edit-router --query-params",
