@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788422439-g3b0913",
+  "amp_version": "0.0.1788465626-g21374e",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -484,8 +484,11 @@
     "amp projects create --icon",
     "amp projects create --json",
     "amp projects create --name",
+    "amp projects create --no-git-setup",
     "amp projects create --orb-size",
     "amp projects create --personal",
+    "amp projects create --push",
+    "amp projects create --remote",
     "amp projects create --ship-behavior",
     "amp projects create --workspace",
     "amp projects delete --json",
@@ -543,6 +546,7 @@
     "amp skill list --json",
     "amp skill remove --target",
     "amp skill repositories --json",
+    "amp svc --input",
     "amp svc gmail create_draft --input",
     "amp svc gmail modify_labels --input",
     "amp svc gmail read_message --input",
