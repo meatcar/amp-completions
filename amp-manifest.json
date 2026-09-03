@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788393688-g400a7f",
+  "amp_version": "0.0.1788422439-g3b0913",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -478,6 +478,7 @@
     "amp plugins show-agent-options --json",
     "amp plugins update --force",
     "amp projects --json",
+    "amp projects create --amp-hosted",
     "amp projects create --commit-author",
     "amp projects create --custom-ship-prompt-file",
     "amp projects create --icon",
