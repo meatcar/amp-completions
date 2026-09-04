@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788480095-g7685ce",
+  "amp_version": "0.0.1788508832-g0731a6",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -319,6 +319,7 @@
     "amp config model-providers check-access --prompt",
     "amp config model-providers check-access --provider-key",
     "amp config model-providers check-access --provider-model",
+    "amp config model-providers check-access --reasoning-effort",
     "amp config model-providers check-access --thread",
     "amp config model-providers deactivate --yes",
     "amp config model-providers edit-key --clear-model-mapping",
