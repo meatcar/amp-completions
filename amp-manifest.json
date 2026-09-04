@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788465626-g21374e",
+  "amp_version": "0.0.1788480095-g7685ce",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -224,6 +224,7 @@
     "amp svc gmail send_message",
     "amp threads",
     "amp threads archive",
+    "amp threads color",
     "amp threads continue",
     "amp threads delete",
     "amp threads export",
