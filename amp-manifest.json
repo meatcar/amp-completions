@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788580839-ga71d30",
+  "amp_version": "0.0.1788624043-gf294bf",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -483,6 +483,7 @@
     "amp projects create --amp-hosted",
     "amp projects create --commit-author",
     "amp projects create --custom-ship-prompt-file",
+    "amp projects create --desktop-resume-script-file",
     "amp projects create --icon",
     "amp projects create --json",
     "amp projects create --name",
@@ -504,6 +505,7 @@
     "amp projects update --commit-author",
     "amp projects update --custom-ship-prompt-file",
     "amp projects update --description",
+    "amp projects update --desktop-resume-script-file",
     "amp projects update --icon",
     "amp projects update --json",
     "amp projects update --listed-on-amp-store",
