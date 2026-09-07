@@ -144,14 +144,63 @@ def inspect_amp(amp: str) -> tuple[Command, str]:
 
 
 FLAG_COMPLETIONS = {
+    "api-format": ["chat-completions", "responses", "anthropic-messages"],
+    "auth": ["oauth", "bearer", "none"],
+    "context": ["thread", "subagent"],
     "features": ["fast\tFaster serving", "pro\tGPT-5.6 Pro mode"],
+    "log-level": ["debug", "info", "warn", "error", "audit"],
     "mode": ["low", "medium", "high", "ultra"],
+    "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"],
+    "reasoning-effort": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
+    "ship-behavior": ["ship", "push-to-branch", "custom"],
+    "subject-scope": ["project", "thread", "user", "workspace"],
     "visibility": ["private", "unlisted", "workspace", "group"],
 }
+PATH_FLAG_COMPLETIONS = {
+    ("amp", "plugins", "add", "target"): ["system", "workspace"],
+    ("amp", "plugins", "remove", "target"): ["system", "workspace"],
+    ("amp", "projects", "snapshots", "delete", "resource"): [
+        "a1.tiny",
+        "a1.small",
+        "a1.medium",
+        "a1.large",
+        "a1.xxlarge",
+    ],
+    ("amp", "skill", "add", "target"): ["$directories"],
+    ("amp", "skill", "remove", "target"): ["$directories"],
+}
+PATH_DYNAMIC_FLAG_COMPLETIONS = {
+    ("amp", "apps", "deploy", "domain"): "domains",
+    (
+        "amp",
+        "config",
+        "model-providers",
+        "check-access",
+        "provider-key",
+    ): "model-providers",
+}
+FILE_COMPLETION_FLAGS = {
+    "icon",
+    "log-file",
+    "mcp-config",
+    "output",
+    "settings-file",
+}
+DIRECTORY_COMPLETION_FLAGS = {"cwd", "repository"}
 DYNAMIC_FLAG_COMPLETIONS = {
     "project": "projects",
     "thread": "threads",
     "thread-id": "threads",
+}
+DYNAMIC_COMPLETION_RESOURCES = {
+    "domains",
+    "local-mcp-servers",
+    "model-providers",
+    "projects",
+    "remote-mcp-servers",
+    "skills",
+    "threads",
+    "tools",
 }
 POSITIONAL_COMPLETIONS = {
     ("amp", "orb", "system-metrics"): "threads",
@@ -163,7 +212,6 @@ POSITIONAL_COMPLETIONS = {
     ("amp", "projects", "snapshots", "list"): "projects",
     ("amp", "projects", "update"): "projects",
     ("amp", "threads", "archive"): "threads",
-    ("amp", "threads", "color"): "threads",
     ("amp", "threads", "delete"): "threads",
     ("amp", "threads", "export"): "threads",
     ("amp", "threads", "label"): "threads",
@@ -175,6 +223,39 @@ POSITIONAL_COMPLETIONS = {
     ("amp", "threads", "share", "multiplayer", "on"): "threads",
     ("amp", "threads", "share", "multiplayer", "ttl"): "threads",
     ("amp", "threads", "usage"): "threads",
+    ("amp", "tools", "show"): "tools",
+    ("amp", "skill", "info"): "skills",
+    ("amp", "skill", "remove"): "skills",
+    ("amp", "mcp", "remove"): "local-mcp-servers",
+    ("amp", "mcp", "remote", "check"): "remote-mcp-servers",
+    ("amp", "mcp", "remote", "login"): "remote-mcp-servers",
+    ("amp", "mcp", "remote", "logout"): "remote-mcp-servers",
+    ("amp", "mcp", "remote", "remove"): "remote-mcp-servers",
+    ("amp", "mcp", "remote", "tools"): "remote-mcp-servers",
+    ("amp", "mcp", "remote", "update"): "remote-mcp-servers",
+    ("amp", "config", "model-providers", "activate"): "model-providers",
+    ("amp", "config", "model-providers", "deactivate"): "model-providers",
+    ("amp", "config", "model-providers", "delete"): "model-providers",
+    ("amp", "config", "model-providers", "edit-key"): "model-providers",
+    ("amp", "config", "model-providers", "show"): "model-providers",
+    ("amp", "config", "model-providers", "test"): "model-providers",
+    ("amp", "domains", "check"): "domains",
+    ("amp", "domains", "remove"): "domains",
+}
+POSITIONAL_SEQUENCE_COMPLETIONS = {
+    ("amp", "apps", "deploy"): [[], ["$directories"]],
+    ("amp", "clone"): [[], ["$directories"]],
+    ("amp", "permissions", "add"): [
+        ["allow", "reject", "ask", "delegate"],
+        ["tools"],
+    ],
+    ("amp", "permissions", "test"): [["tools"]],
+    ("amp", "skill", "add"): [["$files", "$directories"]],
+    ("amp", "threads", "color"): [
+        ["threads"],
+        ["blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan"],
+    ],
+    ("amp", "threads", "visibility"): [["private", "workspace", "group"]],
 }
 POSITIONAL_ANY_COMPLETIONS = {
     ("amp", "threads", "continue"): "threads",
@@ -229,14 +310,25 @@ def emit_command(
     completions = []
     for option in command.options:
         name = completion_name(option.declaration)
-        if name in FLAG_COMPLETIONS:
+        path_completion = PATH_FLAG_COMPLETIONS.get((*path, name))
+        path_dynamic_completion = PATH_DYNAMIC_FLAG_COMPLETIONS.get((*path, name))
+        if path_completion:
+            completions.append((name, path_completion))
+        elif path_dynamic_completion:
+            completions.append((name, [dynamic_completion(path_dynamic_completion)]))
+        elif name in FLAG_COMPLETIONS:
             completions.append((name, FLAG_COMPLETIONS[name]))
         elif name in DYNAMIC_FLAG_COMPLETIONS:
             resource = DYNAMIC_FLAG_COMPLETIONS[name]
             completions.append((name, [dynamic_completion(resource)]))
+        elif name.endswith("-file") or name in FILE_COMPLETION_FLAGS:
+            completions.append((name, ["$files"]))
+        elif name in DIRECTORY_COMPLETION_FLAGS:
+            completions.append((name, ["$directories"]))
     positional = POSITIONAL_COMPLETIONS.get(path)
+    positional_sequence = POSITIONAL_SEQUENCE_COMPLETIONS.get(path)
     positional_any = POSITIONAL_ANY_COMPLETIONS.get(path)
-    if completions or positional or positional_any:
+    if completions or positional or positional_sequence or positional_any:
         lines.append(f"{property_prefix}completion:")
         if completions:
             lines.append(f"{property_prefix}  flag:")
@@ -247,6 +339,16 @@ def emit_command(
             lines.append(
                 f"{property_prefix}    - {json.dumps([dynamic_completion(positional)])}"
             )
+        if positional_sequence:
+            lines.append(f"{property_prefix}  positional:")
+            for values in positional_sequence:
+                resolved = [
+                    dynamic_completion(value)
+                    if value in DYNAMIC_COMPLETION_RESOURCES
+                    else value
+                    for value in values
+                ]
+                lines.append(f"{property_prefix}    - {json.dumps(resolved)}")
         if positional_any:
             lines.append(
                 f"{property_prefix}  positionalany: "

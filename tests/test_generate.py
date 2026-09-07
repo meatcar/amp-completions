@@ -160,6 +160,138 @@ class RenderTest(unittest.TestCase):
             rendered,
         )
 
+    def test_renders_static_and_filesystem_flag_completions(self) -> None:
+        command = generate.Command(
+            "amp",
+            options=[
+                generate.Option("--log-level=", "Log level"),
+                generate.Option("--settings-file=", "Settings file"),
+            ],
+            commands=[
+                generate.Command(
+                    "projects",
+                    commands=[
+                        generate.Command(
+                            "create",
+                            options=[
+                                generate.Option("--orb-size=", "Orb size"),
+                                generate.Option("--ship-behavior=", "Ship behavior"),
+                                generate.Option("--custom-ship-prompt-file=", "Prompt file"),
+                            ],
+                        )
+                    ],
+                ),
+                generate.Command(
+                    "plugins",
+                    commands=[
+                        generate.Command(
+                            "add",
+                            options=[generate.Option("--target=", "Target")],
+                        )
+                    ],
+                ),
+            ],
+        )
+
+        rendered = generate.render(command, "1.2.3")
+
+        self.assertIn('"log-level": ["debug", "info", "warn", "error", "audit"]', rendered)
+        self.assertIn('"settings-file": ["$files"]', rendered)
+        self.assertIn(
+            '"orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]',
+            rendered,
+        )
+        self.assertIn('"ship-behavior": ["ship", "push-to-branch", "custom"]', rendered)
+        self.assertIn('"custom-ship-prompt-file": ["$files"]', rendered)
+        self.assertIn('"target": ["system", "workspace"]', rendered)
+
+    def test_renders_dynamic_resource_and_positional_filesystem_completions(self) -> None:
+        command = generate.Command(
+            "amp",
+            commands=[
+                generate.Command(
+                    "tools",
+                    commands=[generate.Command("show")],
+                ),
+                generate.Command(
+                    "skill",
+                    commands=[generate.Command("info")],
+                ),
+                generate.Command(
+                    "mcp",
+                    commands=[generate.Command("remove")],
+                ),
+                generate.Command(
+                    "apps",
+                    commands=[
+                        generate.Command(
+                            "deploy",
+                            options=[generate.Option("--domain=", "Domain")],
+                        )
+                    ],
+                ),
+                generate.Command(
+                    "threads",
+                    commands=[
+                        generate.Command("color"),
+                        generate.Command("visibility"),
+                    ],
+                ),
+                generate.Command(
+                    "permissions",
+                    commands=[
+                        generate.Command("add"),
+                        generate.Command("test"),
+                    ],
+                ),
+            ],
+        )
+
+        rendered = generate.render(command, "1.2.3")
+
+        for resource in ("tools", "skills", "local-mcp-servers"):
+            completion = (
+                '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
+                f'amp-completions" {resource})'
+            )
+            self.assertIn(json.dumps([completion]), rendered)
+        domain_completion = (
+            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
+            'amp-completions" domains)'
+        )
+        self.assertIn(f'"domain": {json.dumps([domain_completion])}', rendered)
+        self.assertIn(
+            'name: "deploy"\n'
+            '        flags:\n'
+            '          "--domain=": "Domain"\n'
+            '        completion:\n'
+            f'          flag:\n            "domain": {json.dumps([domain_completion])}\n'
+            '          positional:\n'
+            '            - []\n'
+            '            - ["$directories"]',
+            rendered,
+        )
+        self.assertIn(
+            'name: "visibility"\n        completion:\n'
+            '          positional:\n'
+            '            - ["private", "workspace", "group"]',
+            rendered,
+        )
+        self.assertIn(
+            'name: "add"\n        completion:\n'
+            '          positional:\n'
+            '            - ["allow", "reject", "ask", "delegate"]\n'
+            '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" tools)"]',
+            rendered,
+        )
+        self.assertIn(
+            'name: "color"\n        completion:\n'
+            '          positional:\n'
+            '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" threads)"]\n'
+            '            - ["blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan"]',
+            rendered,
+        )
+
 
 class ManifestTest(unittest.TestCase):
     def test_records_nested_commands_aliases_and_flag_scopes(self) -> None:

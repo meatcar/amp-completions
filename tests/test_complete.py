@@ -14,7 +14,7 @@ class CompleteCliTest(unittest.TestCase):
     def run_complete(
         self,
         resource: str,
-        response: list[dict[str, object]],
+        response: object,
         amp_exit_code: int = 0,
     ) -> subprocess.CompletedProcess[str]:
         with tempfile.TemporaryDirectory() as directory:
@@ -82,6 +82,75 @@ class CompleteCliTest(unittest.TestCase):
             result.stdout,
             "meatcar/amp-completions\thttps://github.com/meatcar/amp-completions\n",
         )
+
+    def test_completes_json_backed_resources(self) -> None:
+        cases = {
+            "tools": (
+                [{"name": "shell_command", "description": "Run a command", "source": "builtin"}],
+                "shell_command\tRun a command\n",
+            ),
+            "skills": (
+                {
+                    "errors": [],
+                    "skills": [
+                        {
+                            "name": "tdd",
+                            "description": "Test-driven development",
+                            "source": "workspace",
+                        }
+                    ],
+                },
+                "tdd\tTest-driven development\n",
+            ),
+            "remote-mcp-servers": (
+                [
+                    {
+                        "id": "MCP-123",
+                        "name": "linear",
+                        "source": "account",
+                        "connected": True,
+                    }
+                ],
+                "linear\taccount\n",
+            ),
+            "local-mcp-servers": (
+                [
+                    {
+                        "id": "MCP-123",
+                        "name": "linear",
+                        "source": "account",
+                        "connected": True,
+                    },
+                    {
+                        "id": "MCP-456",
+                        "name": "playwright",
+                        "source": "workspace settings",
+                        "connected": True,
+                    },
+                ],
+                "playwright\tworkspace settings\n",
+            ),
+            "model-providers": (
+                [
+                    {
+                        "id": "MP-123",
+                        "name": "Work OpenAI",
+                        "type": "openai",
+                    }
+                ],
+                "MP-123\tWork OpenAI (openai)\n",
+            ),
+            "domains": (
+                [{"hostname": "docs.example.com", "status": "active"}],
+                "docs.example.com\tactive\n",
+            ),
+        }
+
+        for resource, (response, expected) in cases.items():
+            with self.subTest(resource=resource):
+                result = self.run_complete(resource, response)
+                self.assertEqual(result.returncode, 0)
+                self.assertEqual(result.stdout, expected)
 
     def test_completes_threads_beyond_the_first_page(self) -> None:
         threads = [

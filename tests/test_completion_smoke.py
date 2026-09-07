@@ -24,6 +24,9 @@ class CompletionSmokeTest(unittest.TestCase):
                 "case $1 in\n"
                 "  threads) printf 'T-123\\tExample thread\\n' ;;\n"
                 "  projects) printf 'meatcar/amp-completions\\tExample project\\n' ;;\n"
+                "  tools) printf 'shell_command\\tRun a command\\n' ;;\n"
+                "  skills) printf 'tdd\\tTest-driven development\\n' ;;\n"
+                "  local-mcp-servers) printf 'playwright\\tWorkspace settings\\n' ;;\n"
                 "esac\n"
             )
             helper.chmod(0o755)
@@ -76,6 +79,19 @@ class CompletionSmokeTest(unittest.TestCase):
             "meatcar/amp-completions",
             self.complete("projects", "get", ""),
         )
+
+    def test_completes_dynamic_tool_names(self) -> None:
+        self.assertIn("shell_command", self.complete("tools", "show", ""))
+
+    def test_completes_static_enum_values(self) -> None:
+        self.assertEqual(
+            self.complete("projects", "create", "--ship-behavior", ""),
+            {"custom", "push-to-branch", "ship"},
+        )
+
+    def test_completes_file_and_directory_values(self) -> None:
+        self.assertIn("README.md", self.complete("--settings-file", ""))
+        self.assertIn("src/", self.complete("apps", "deploy", "workspace/app", ""))
 
 
 if __name__ == "__main__":
