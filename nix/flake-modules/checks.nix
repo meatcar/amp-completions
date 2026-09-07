@@ -25,6 +25,9 @@
       checks.custom-amp = pkgs.runCommand "custom-amp-completions-check" { } ''
         grep -Fx "# Amp version: 9.8.7" \
           "${customCompletions}/share/carapace/specs/amp.yaml"
+        test -x "${customCompletions}/share/carapace/bin/amp-completions"
+        grep -F 'DEFAULT_AMP = "${customAmp}/bin/amp"' \
+          "${customCompletions}/share/carapace/bin/amp-completions"
         touch "$out"
       '';
       checks.completions =

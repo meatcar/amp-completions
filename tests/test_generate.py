@@ -109,6 +109,57 @@ class RenderTest(unittest.TestCase):
         self.assertIn('"mode": ["low", "medium", "high", "ultra"]', rendered)
         self.assertIn('- name: "version"', rendered)
 
+    def test_renders_dynamic_thread_and_project_completions(self) -> None:
+        command = generate.Command(
+            "amp",
+            commands=[
+                generate.Command(
+                    "orb",
+                    commands=[
+                        generate.Command(
+                            "portal",
+                            options=[generate.Option("--thread=", "Thread")],
+                        )
+                    ],
+                ),
+                generate.Command(
+                    "mcp",
+                    options=[generate.Option("--project=", "Project")],
+                ),
+                generate.Command(
+                    "threads",
+                    commands=[generate.Command("continue")],
+                ),
+                generate.Command(
+                    "projects",
+                    commands=[generate.Command("get")],
+                ),
+            ],
+        )
+
+        rendered = generate.render(command, "1.2.3")
+
+        thread_completion = (
+            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
+            'amp-completions" threads)'
+        )
+        project_completion = (
+            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
+            'amp-completions" projects)'
+        )
+        self.assertIn(f'"thread": {json.dumps([thread_completion])}', rendered)
+        self.assertIn(f'"project": {json.dumps([project_completion])}', rendered)
+        self.assertIn(
+            'name: "continue"\n        completion:\n'
+            f"          positionalany: {json.dumps([thread_completion])}",
+            rendered,
+        )
+        self.assertIn(
+            'name: "get"\n        completion:\n          positional:\n'
+            f"            - {json.dumps([project_completion])}",
+            rendered,
+        )
+
 
 class ManifestTest(unittest.TestCase):
     def test_records_nested_commands_aliases_and_flag_scopes(self) -> None:

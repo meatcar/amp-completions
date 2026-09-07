@@ -148,6 +148,37 @@ FLAG_COMPLETIONS = {
     "mode": ["low", "medium", "high", "ultra"],
     "visibility": ["private", "unlisted", "workspace", "group"],
 }
+DYNAMIC_FLAG_COMPLETIONS = {
+    "project": "projects",
+    "thread": "threads",
+    "thread-id": "threads",
+}
+POSITIONAL_COMPLETIONS = {
+    ("amp", "orb", "system-metrics"): "threads",
+    ("amp", "projects", "delete"): "projects",
+    ("amp", "projects", "gallery-media", "get"): "projects",
+    ("amp", "projects", "gallery-media", "set"): "projects",
+    ("amp", "projects", "get"): "projects",
+    ("amp", "projects", "snapshots", "delete"): "projects",
+    ("amp", "projects", "snapshots", "list"): "projects",
+    ("amp", "projects", "update"): "projects",
+    ("amp", "threads", "archive"): "threads",
+    ("amp", "threads", "color"): "threads",
+    ("amp", "threads", "delete"): "threads",
+    ("amp", "threads", "export"): "threads",
+    ("amp", "threads", "label"): "threads",
+    ("amp", "threads", "markdown"): "threads",
+    ("amp", "threads", "raw"): "threads",
+    ("amp", "threads", "rename"): "threads",
+    ("amp", "threads", "share"): "threads",
+    ("amp", "threads", "share", "multiplayer", "off"): "threads",
+    ("amp", "threads", "share", "multiplayer", "on"): "threads",
+    ("amp", "threads", "share", "multiplayer", "ttl"): "threads",
+    ("amp", "threads", "usage"): "threads",
+}
+POSITIONAL_ANY_COMPLETIONS = {
+    ("amp", "threads", "continue"): "threads",
+}
 
 
 def completion_name(declaration: str) -> str:
@@ -164,12 +195,23 @@ def emit_mapping(lines: list[str], indent: int, name: str, values: list[tuple[st
         lines.append(f"{' ' * (indent + 2)}{json.dumps(key)}: {json.dumps(description)}")
 
 
-def emit_command(command: Command, indent: int, sequence: bool = False) -> list[str]:
+def dynamic_completion(resource: str) -> str:
+    helper = '"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions"'
+    return f"$sh({helper} {resource})"
+
+
+def emit_command(
+    command: Command,
+    indent: int,
+    sequence: bool = False,
+    parents: tuple[str, ...] = (),
+) -> list[str]:
     prefix = " " * indent
     first = "- " if sequence else ""
     lines = [f"{prefix}{first}name: {json.dumps(command.name)}"]
     property_indent = indent + (2 if sequence else 0)
     property_prefix = " " * property_indent
+    path = (*parents, command.name)
 
     if command.aliases:
         lines.append(f"{property_prefix}aliases: {json.dumps(command.aliases)}")
@@ -189,16 +231,39 @@ def emit_command(command: Command, indent: int, sequence: bool = False) -> list[
         name = completion_name(option.declaration)
         if name in FLAG_COMPLETIONS:
             completions.append((name, FLAG_COMPLETIONS[name]))
-    if completions:
+        elif name in DYNAMIC_FLAG_COMPLETIONS:
+            resource = DYNAMIC_FLAG_COMPLETIONS[name]
+            completions.append((name, [dynamic_completion(resource)]))
+    positional = POSITIONAL_COMPLETIONS.get(path)
+    positional_any = POSITIONAL_ANY_COMPLETIONS.get(path)
+    if completions or positional or positional_any:
         lines.append(f"{property_prefix}completion:")
-        lines.append(f"{property_prefix}  flag:")
-        for name, values in completions:
-            lines.append(f"{property_prefix}    {json.dumps(name)}: {json.dumps(values)}")
+        if completions:
+            lines.append(f"{property_prefix}  flag:")
+            for name, values in completions:
+                lines.append(f"{property_prefix}    {json.dumps(name)}: {json.dumps(values)}")
+        if positional:
+            lines.append(f"{property_prefix}  positional:")
+            lines.append(
+                f"{property_prefix}    - {json.dumps([dynamic_completion(positional)])}"
+            )
+        if positional_any:
+            lines.append(
+                f"{property_prefix}  positionalany: "
+                f"{json.dumps([dynamic_completion(positional_any)])}"
+            )
 
     if command.commands:
         lines.append(f"{property_prefix}commands:")
         for child in command.commands:
-            lines.extend(emit_command(child, property_indent + 2, sequence=True))
+            lines.extend(
+                emit_command(
+                    child,
+                    property_indent + 2,
+                    sequence=True,
+                    parents=path,
+                )
+            )
 
     return lines
 

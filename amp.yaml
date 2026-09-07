@@ -40,6 +40,7 @@ completion:
     "visibility": ["private", "unlisted", "workspace", "group"]
     "mode": ["low", "medium", "high", "ultra"]
     "features": ["fast\tFaster serving", "pro\tGPT-5.6 Pro mode"]
+    "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
 commands:
   - name: "version"
     description: "Print the version number and exit"
@@ -54,6 +55,9 @@ commands:
     commands:
       - name: "system-metrics"
         description: "Print historical orb system metrics for a thread URL or ID"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "portal"
         description: "Register a portal for an existing process and print its URL; use \"amp orb service start\" for"
         flags:
@@ -64,6 +68,9 @@ commands:
           "--description=": "Portal tab description shown as a note next to the link; written to the portal manifest"
           "--hostname=": "Set the portal's public hostname (a full managed hostname like <name>--<namespace>.onamp.dev or a custom domain) before printing the URL; pass 'auto' to restore the auto-generated hostname. The target may be omitted when exactly one portal is running."
           "--take-over": "Move a hostname from another thread portal; requires --hostname"
+        completion:
+          flag:
+            "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
         commands:
           - name: "access"
             description: "Set portal access"
@@ -100,6 +107,9 @@ commands:
         description: "Refresh environment variables and restart all processes in an orb thread"
         flags:
           "--thread=": "Thread URL (defaults to AMP_THREAD_ID)"
+        completion:
+          flag:
+            "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "id-token"
         description: "Mint a short-lived OIDC token with a caller-chosen audience and print it to stdout"
         flags:
@@ -158,6 +168,8 @@ commands:
         flags:
           "--last": "Continue the last thread in this checkout for the current mode, preferring this terminal"
           "--pick": "Pick a thread interactively from a list (DEPRECATED: picker is now the default)"
+        completion:
+          positionalany: ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "list"
         aliases: ["l", "ls"]
         description: "List all threads"
@@ -173,6 +185,9 @@ commands:
           "--details": "Show detailed credit, token, model, and tool usage"
           "--start=": "Start of the usage range as an ISO 8601 timestamp"
           "--end=": "Exclusive end of the usage range as an ISO 8601 timestamp"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "visibility"
         aliases: ["v"]
         description: "Show or set default visibility for this repository"
@@ -185,8 +200,14 @@ commands:
           "--json": "Output as JSON"
       - name: "color"
         description: "Set a thread color"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "label"
         description: "Add labels to a thread"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "share"
         aliases: ["s"]
         description: "Share a thread"
@@ -195,14 +216,22 @@ commands:
         completion:
           flag:
             "visibility": ["private", "unlisted", "workspace", "group"]
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
         commands:
           - name: "multiplayer"
             description: "Turn multiplayer on or off"
             commands:
               - name: "on"
                 description: "Turn multiplayer on for the default duration (1 week)"
+                completion:
+                  positional:
+                    - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
               - name: "off"
                 description: "Turn multiplayer off"
+                completion:
+                  positional:
+                    - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
               - name: "ttl"
                 description: "Turn multiplayer on for a specific duration"
                 flags:
@@ -210,23 +239,44 @@ commands:
                   "--hours=": "Duration in hours"
                   "--days=": "Duration in days"
                   "--weeks=": "Duration in weeks"
+                completion:
+                  positional:
+                    - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "rename"
         aliases: ["r"]
         description: "Rename a thread"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "archive"
         description: "Archive a thread"
         flags:
           "--unarchive": "Unarchive the thread instead of archiving"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "delete"
         description: "Delete a thread"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "markdown"
         aliases: ["md"]
         description: "Render thread as markdown"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "export"
         description: "Export a thread as JSON"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "raw"
         aliases: ["raw-thread"]
         description: "Export raw actor thread data as JSON"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
   - name: "tools"
     aliases: ["tool"]
     description: "Tool management commands"
@@ -338,6 +388,9 @@ commands:
           "--json": "output as JSON"
           "-q, --quiet": "suppress output, only use exit status"
           "-w, --workspace": "Test against workspace permissions instead of global"
+        completion:
+          flag:
+            "thread-id": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "edit"
         description: "Edit permissions"
         flags:
@@ -370,6 +423,9 @@ commands:
           "--workspace=": "Use remote MCP servers for a workspace name or ID"
           "--project=": "Use remote MCP servers for a project ID or namespace/name"
           "--current-project": "Use the current directory's Amp project"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
         commands:
           - name: "list"
             description: "List stored remote MCP servers"
@@ -379,6 +435,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "add"
             description: "Add a stored remote MCP server"
             flags:
@@ -391,6 +450,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "update"
             description: "Update a stored remote MCP server"
             flags:
@@ -407,6 +469,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "remove"
             description: "Remove a stored remote MCP server"
             flags:
@@ -416,6 +481,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "check"
             description: "Check a stored remote MCP server"
             flags:
@@ -424,6 +492,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "tools"
             description: "List tools for a stored remote MCP server"
             flags:
@@ -435,6 +506,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "login"
             description: "Log in to a stored remote MCP server"
             flags:
@@ -443,6 +517,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "logout"
             description: "Log out of a stored remote MCP server"
             flags:
@@ -451,6 +528,9 @@ commands:
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
               "--current-project": "Use the current directory's Amp project"
+            completion:
+              flag:
+                "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "oauth"
         description: "Manage OAuth credentials for MCP servers in local CLI settings"
         flags:
@@ -502,6 +582,9 @@ commands:
               "--provider-key=": "specific model provider key UUID (Amp staff only)"
               "--prompt=": "test prompt (Amp staff only)"
               "--reasoning-effort=": "reasoning effort (defaults to the model routing default) This performs an actual inference request with a short prompt, so it may incur a small cost: on your model provider account when the model is served by your own key, or a few Amp credits otherwise. The inference is associated with the thread from --thread or AMP_THREAD_ID, which must be a thread you own; any existing thread works and its transcript is not changed."
+            completion:
+              flag:
+                "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
           - name: "add-router"
             description: "Add an AI model router and select the models routed through it"
             flags:
@@ -631,6 +714,9 @@ commands:
           "--pre-clone-script-file=": "Read the pre-clone script from a file, or '-' for stdin"
           "--pre-setup-script-file=": "Read the pre-setup script from a file, or '-' for stdin"
           "--json": "Print JSON output"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "list"
         description: "List projects accessible to you"
         flags:
@@ -643,6 +729,9 @@ commands:
         description: "Get a project by ID, [@]namespace/name, or repository"
         flags:
           "--json": "Print JSON output"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "snapshots"
         description: "Manage a project\u2019s shared orb snapshots"
         commands:
@@ -650,25 +739,40 @@ commands:
             description: "List shared orb snapshots by project and orb size"
             flags:
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "delete"
             aliases: ["rm"]
             description: "Delete all shared orb snapshots, or one orb size with --resource"
             flags:
               "--resource=": "Delete only this orb size"
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "gallery-media"
         description: "Manage a project\u2019s Amp Store gallery media"
         commands:
           - name: "get"
             description: "Print a project\u2019s Amp Store gallery media as JSON"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "set"
             description: "Set a project\u2019s Amp Store gallery media from a JSON array of {\"type\":\"image\"|\"video\",\"url\":\"<Amp artifact"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "delete"
         aliases: ["rm"]
         description: "Delete a project by ID, [@]namespace/name, or repository"
         flags:
           "-y, --yes": "Confirm deletion"
           "--json": "Print JSON output"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
   - name: "apps"
     description: "Manage workspace apps"
     commands:
@@ -735,6 +839,9 @@ commands:
           "--app=": "Use an App (workspace/app)"
           "--project?": "Use a project (ID, namespace/name, or repository); defaults to the current directory's project"
           "--json": "Print JSON output"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "history"
         description: "Show the change history of secrets and environment variables, including deletions (values are never shown)"
         flags:
@@ -743,6 +850,9 @@ commands:
           "--app=": "Use an App (workspace/app)"
           "--project?": "Use a project (ID, namespace/name, or repository); defaults to the current directory's project"
           "--json": "Print JSON output"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "get"
         description: "Get an environment variable value (secret values are never returned)"
         flags:
@@ -750,6 +860,9 @@ commands:
           "--workspace": "Use workspace secrets and environment variables"
           "--app=": "Use an App (workspace/app)"
           "--project?": "Use a project (ID, namespace/name, or repository); defaults to the current directory's project"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "set"
         description: "Add or update a secret or environment variable"
         flags:
@@ -761,6 +874,9 @@ commands:
           "--env": "Store as an environment variable"
           "--secret": "Store as a secret"
           "--json": "Print JSON output"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "delete"
         aliases: ["rm"]
         description: "Delete a secret or environment variable"
@@ -771,6 +887,9 @@ commands:
           "--project?": "Use a project (ID, namespace/name, or repository); defaults to the current directory's project"
           "-y, --yes": "Confirm deletion"
           "--json": "Print JSON output"
+        completion:
+          flag:
+            "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
   - name: "svc"
     description: "Call connected services and MCP servers through Amp"
     flags:
