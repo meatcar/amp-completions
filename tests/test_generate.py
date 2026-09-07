@@ -244,6 +244,15 @@ class RenderTest(unittest.TestCase):
                         generate.Command("test"),
                     ],
                 ),
+                generate.Command(
+                    "config",
+                    commands=[
+                        generate.Command(
+                            "model-providers",
+                            commands=[generate.Command("setup-guide")],
+                        )
+                    ],
+                ),
             ],
         )
 
@@ -282,6 +291,12 @@ class RenderTest(unittest.TestCase):
             '          positional:\n'
             '            - ["allow", "reject", "ask", "delegate"]\n'
             '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" tools)"]',
+            rendered,
+        )
+        self.assertIn(
+            'name: "setup-guide"\n            completion:\n'
+            '              positional:\n'
+            '                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "amazon-bedrock", "opencode-go", "custom-url"]',
             rendered,
         )
         self.assertIn(

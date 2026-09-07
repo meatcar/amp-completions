@@ -732,6 +732,9 @@ commands:
             flags:
               "--personal": "show the exact identity values for connections on your personal account"
               "--workspace": "show the exact identity values for connections on your current workspace"
+            completion:
+              positional:
+                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "amazon-bedrock", "opencode-go", "custom-url"]
           - name: "edit-key"
             description: "Edit a model provider API key name or model mapping"
             flags:

@@ -245,6 +245,18 @@ POSITIONAL_COMPLETIONS = {
 POSITIONAL_SEQUENCE_COMPLETIONS = {
     ("amp", "apps", "deploy"): [[], ["$directories"]],
     ("amp", "clone"): [[], ["$directories"]],
+    ("amp", "config", "model-providers", "setup-guide"): [
+        [
+            "ollama-cloud",
+            "openrouter",
+            "vercel",
+            "cloudflare",
+            "google-cloud-agent-platform",
+            "amazon-bedrock",
+            "opencode-go",
+            "custom-url",
+        ]
+    ],
     ("amp", "permissions", "add"): [
         ["allow", "reject", "ask", "delegate"],
         ["tools"],
