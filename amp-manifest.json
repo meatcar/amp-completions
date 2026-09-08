@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1788825688-gc3e098",
+  "amp_version": "0.0.1788855325-g2dd76f",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -253,6 +253,7 @@
   "flag_paths": [
     "amp --color",
     "amp --execute",
+    "amp --executor",
     "amp --fast",
     "amp --features",
     "amp --ide",
@@ -597,6 +598,7 @@
   "persistent_flag_paths": [
     "amp --color",
     "amp --execute",
+    "amp --executor",
     "amp --fast",
     "amp --features",
     "amp --ide",
