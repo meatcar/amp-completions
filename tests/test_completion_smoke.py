@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import tempfile
@@ -11,20 +12,38 @@ ROOT = Path(__file__).parents[1]
 class CompletionSmokeTest(unittest.TestCase):
     def complete(self, *words: str) -> set[str]:
         with tempfile.TemporaryDirectory() as directory:
+            config_directory = Path(directory) / "config"
+            spec_directory = config_directory / "carapace" / "specs"
+            spec_directory.mkdir(parents=True)
+            (spec_directory / "amp.yaml").write_text((ROOT / "amp.yaml").read_text())
+            helper_directory = config_directory / "carapace" / "bin"
+            helper_directory.mkdir()
+            helper = helper_directory / "amp-completions"
+            helper.write_text(
+                "#!/bin/sh\n"
+                "case $1 in\n"
+                "  threads) printf 'T-123\\tExample thread\\n' ;;\n"
+                "  projects) printf 'meatcar/amp-completions\\tExample project\\n' ;;\n"
+                "  tools) printf 'shell_command\\tRun a command\\n' ;;\n"
+                "  skills) printf 'tdd\\tTest-driven development\\n' ;;\n"
+                "  local-mcp-servers) printf 'playwright\\tWorkspace settings\\n' ;;\n"
+                "esac\n"
+            )
+            helper.chmod(0o755)
             environment = os.environ.copy()
             environment.update(
                 {
                     "HOME": directory,
                     "XDG_CACHE_HOME": f"{directory}/cache",
-                    "XDG_CONFIG_HOME": f"{directory}/config",
+                    "XDG_CONFIG_HOME": str(config_directory),
                 }
             )
             result = subprocess.run(
                 [
                     "carapace",
-                    "--run",
-                    str(ROOT / "amp.yaml"),
-                    "__complete",
+                    "amp",
+                    "export",
+                    "",
                     *words,
                 ],
                 check=True,
@@ -32,11 +51,7 @@ class CompletionSmokeTest(unittest.TestCase):
                 env=environment,
                 text=True,
             )
-        return {
-            line.split("\t", 1)[0]
-            for line in result.stdout.splitlines()
-            if line and not line.startswith(":")
-        }
+        return {value["value"] for value in json.loads(result.stdout)["values"]}
 
     def test_completes_root_command(self) -> None:
         self.assertIn("threads", self.complete(""))
@@ -52,6 +67,31 @@ class CompletionSmokeTest(unittest.TestCase):
             self.complete("--mode", ""),
             {"high", "low", "medium", "ultra"},
         )
+
+    def test_completes_thread_flag_values(self) -> None:
+        self.assertIn("T-123", self.complete("orb", "portal", "--thread", ""))
+
+    def test_completes_thread_positional_values(self) -> None:
+        self.assertIn("T-123", self.complete("threads", "continue", ""))
+
+    def test_completes_project_positional_values(self) -> None:
+        self.assertIn(
+            "meatcar/amp-completions",
+            self.complete("projects", "get", ""),
+        )
+
+    def test_completes_dynamic_tool_names(self) -> None:
+        self.assertIn("shell_command", self.complete("tools", "show", ""))
+
+    def test_completes_static_enum_values(self) -> None:
+        self.assertEqual(
+            self.complete("projects", "create", "--ship-behavior", ""),
+            {"custom", "push-to-branch", "ship"},
+        )
+
+    def test_completes_file_and_directory_values(self) -> None:
+        self.assertIn("README.md", self.complete("--settings-file", ""))
+        self.assertIn("src/", self.complete("apps", "deploy", "workspace/app", ""))
 
 
 if __name__ == "__main__":

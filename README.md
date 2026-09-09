@@ -5,8 +5,10 @@ Amp's own help output and distributed as a checked-in
 [Carapace spec](https://carapace-sh.github.io/carapace-bin/spec.html).
 
 It works with Bash, Zsh, Fish, Nushell, PowerShell, and other shells supported
-by Carapace. Completion is static: pressing Tab does not start Amp, Python, or
-any network request.
+by Carapace. Commands, flags, fixed values, and filesystem arguments are
+generated statically. Completing threads, projects, tools, skills, MCP servers,
+model-provider connections, and domains runs a small helper that calls Amp, so
+those completions reflect the resources available to the signed-in user.
 
 ```text
 amp th<Tab>        → thread, threads
@@ -25,7 +27,9 @@ make install
 ```
 
 Open a new shell after installation. `make install` copies `amp.yaml` to the
-Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}`.
+Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}` and
+installs the dynamic completion helper under `carapace/bin`. The helper uses
+Python 3 and may run an Amp JSON-listing command for account-backed completions.
 
 ### Nix
 
@@ -52,6 +56,8 @@ module, to build it during activation. For example:
 ```nix
 xdg.configFile."carapace/specs/amp.yaml".source =
   "${inputs.amp-completions.packages.${pkgs.system}.default}/share/carapace/specs/amp.yaml";
+xdg.configFile."carapace/bin/amp-completions".source =
+  "${inputs.amp-completions.packages.${pkgs.system}.default}/share/carapace/bin/amp-completions";
 ```
 
 The Amp package does not need to come from `llm-agents`. Build and install
@@ -68,6 +74,8 @@ in
 {
   xdg.configFile."carapace/specs/amp.yaml".source =
     "${ampCompletions}/share/carapace/specs/amp.yaml";
+  xdg.configFile."carapace/bin/amp-completions".source =
+    "${ampCompletions}/share/carapace/bin/amp-completions";
 }
 ```
 
@@ -85,13 +93,16 @@ produces two files:
   safety checks.
 
 Both files identify the Amp version that produced them. The generator also
-supplies semantic values that help output cannot describe, such as agent modes
-and visibility levels.
+supplies semantic values that help output cannot describe, such as agent modes,
+visibility levels, orb sizes, and ship behavior. It also adds file and directory
+completion to path-like arguments. For account-specific values, the generated
+spec invokes `amp-completions`, which converts Amp's JSON listing commands into
+Carapace candidates.
 
 The pinned Amp executable comes from
 [`llm-agents.nix`](https://github.com/numtide/llm-agents.nix). Generated output
-is deterministic and checked in, so changes are reviewable without running
-Amp during completion.
+is deterministic and checked in, so changes are reviewable. Only dynamic
+resource completion runs Amp.
 
 ## Development
 
@@ -121,6 +132,11 @@ parser, policy, workflow, and completion tests.
   Command and flag removals remain visible in the pull request but do not
   require maintainer input. If `main` advances during validation, the next
   hourly run rebuilds the candidate instead of merging stale validation.
+  New and changed commands, flags, aliases, and help text are discovered
+  automatically. Semantic completion rules are curated: an existing recognized
+  flag name automatically keeps its enum or filesystem completion, but a new
+  resource argument, a changed enum, or a changed JSON response shape requires
+  a generator/helper update.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly. It cannot change `llm-agents` or files other than
   `flake.lock`.
