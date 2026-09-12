@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789200043-gdb3b35",
+  "amp_version": "0.0.1789243243-g7083db",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -155,6 +155,12 @@
     "amp mcp remote tools",
     "amp mcp remote update",
     "amp mcp remove",
+    "amp net",
+    "amp net exit-node",
+    "amp net ping",
+    "amp net route",
+    "amp net run",
+    "amp net status",
     "amp oauth-clients",
     "amp oauth-clients create",
     "amp oauth-clients edit",
@@ -431,6 +437,14 @@
     "amp mcp remote update --project",
     "amp mcp remote update --url",
     "amp mcp remote update --workspace",
+    "amp net exit-node --id",
+    "amp net exit-node --portal-domain",
+    "amp net exit-node --thread",
+    "amp net exit-node --verbose",
+    "amp net ping --count",
+    "amp net route --system",
+    "amp net route --wait",
+    "amp net status --json",
     "amp oauth-clients create --description",
     "amp oauth-clients create --name",
     "amp oauth-clients create --redirect-uri",
@@ -520,6 +534,7 @@
     "amp projects update --orb-size",
     "amp projects update --pre-clone-script-file",
     "amp projects update --pre-setup-script-file",
+    "amp projects update --repository-mode",
     "amp projects update --repository-url",
     "amp projects update --ship-behavior",
     "amp secrets delete --app",
