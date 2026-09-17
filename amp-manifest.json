@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789545662-ge8425e",
+  "amp_version": "0.0.1789588847-gf375db",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -108,6 +108,7 @@
     "amp apps edit",
     "amp apps list",
     "amp clone",
+    "amp completions",
     "amp config",
     "amp config edit",
     "amp config keymap",
