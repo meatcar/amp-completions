@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789607146-g57354f",
+  "amp_version": "0.0.1789634559-g4d6081",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -211,6 +211,12 @@
     "amp projects status",
     "amp projects update",
     "amp report-bug",
+    "amp runner",
+    "amp runner dirs",
+    "amp runner dirs add",
+    "amp runner dirs list",
+    "amp runner dirs remove",
+    "amp runner list",
     "amp secrets",
     "amp secrets delete",
     "amp secrets get",
@@ -538,6 +544,9 @@
     "amp projects update --repository-mode",
     "amp projects update --repository-url",
     "amp projects update --ship-behavior",
+    "amp runner dirs add --runner-id",
+    "amp runner dirs list --runner-id",
+    "amp runner dirs remove --runner-id",
     "amp secrets delete --app",
     "amp secrets delete --json",
     "amp secrets delete --project",
