@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789689675-g7fec46",
+  "amp_version": "0.0.1789718441-g0d2ed0",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -179,6 +179,8 @@
     "amp orb service start",
     "amp orb service status",
     "amp orb service stop",
+    "amp orb simulator",
+    "amp orb simulator serve",
     "amp orb system-metrics",
     "amp permissions",
     "amp permissions add",
@@ -484,6 +486,9 @@
     "amp orb service start --port",
     "amp orb service start --portal",
     "amp orb service start --title",
+    "amp orb simulator serve --device",
+    "amp orb simulator serve --port",
+    "amp orb simulator serve --runtime",
     "amp permissions add --context",
     "amp permissions add --to",
     "amp permissions add --workspace",
