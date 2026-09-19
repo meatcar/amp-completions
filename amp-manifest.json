@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789761645-g82344a",
+  "amp_version": "0.0.1789764455-g07cced",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -293,6 +293,7 @@
     "amp --plugin-ready-timeout",
     "amp --project",
     "amp --remote-control-terminal",
+    "amp --runner-dir",
     "amp --settings-file",
     "amp --stream-json",
     "amp --stream-json-input",
@@ -656,6 +657,7 @@
     "amp --plugin-ready-timeout",
     "amp --project",
     "amp --remote-control-terminal",
+    "amp --runner-dir",
     "amp --settings-file",
     "amp --stream-json",
     "amp --stream-json-input",
