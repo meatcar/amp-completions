@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789790452-gad4023",
+  "amp_version": "0.0.1789848041-gfc88c5",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -111,6 +111,15 @@
     "amp completions",
     "amp config",
     "amp config edit",
+    "amp config external-agents",
+    "amp config external-agents activate",
+    "amp config external-agents create",
+    "amp config external-agents deactivate",
+    "amp config external-agents delete",
+    "amp config external-agents list",
+    "amp config external-agents reset",
+    "amp config external-agents show",
+    "amp config external-agents update",
     "amp config keymap",
     "amp config model-providers",
     "amp config model-providers activate",
@@ -270,6 +279,7 @@
     "amp version"
   ],
   "flag_paths": [
+    "amp --attach",
     "amp --color",
     "amp --execute",
     "amp --executor",
@@ -316,6 +326,24 @@
     "amp clone --no-git-setup",
     "amp config edit --global",
     "amp config edit --workspace",
+    "amp config external-agents --json",
+    "amp config external-agents create --name",
+    "amp config external-agents create --new-thread-command",
+    "amp config external-agents create --resume-thread-command",
+    "amp config external-agents create --setup-script",
+    "amp config external-agents create --setup-script-file",
+    "amp config external-agents list --json",
+    "amp config external-agents show --json",
+    "amp config external-agents update --default-name",
+    "amp config external-agents update --default-new-thread-command",
+    "amp config external-agents update --default-resume-thread-command",
+    "amp config external-agents update --default-setup-script",
+    "amp config external-agents update --mark-set-up",
+    "amp config external-agents update --name",
+    "amp config external-agents update --new-thread-command",
+    "amp config external-agents update --resume-thread-command",
+    "amp config external-agents update --setup-script",
+    "amp config external-agents update --setup-script-file",
     "amp config model-providers --json",
     "amp config model-providers --workspace",
     "amp config model-providers add-router --active",
@@ -634,6 +662,7 @@
   ],
   "manifest_version": 1,
   "persistent_flag_paths": [
+    "amp --attach",
     "amp --color",
     "amp --execute",
     "amp --executor",
