@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789893172-g244572",
+  "amp_version": "0.0.1789934445-g6f6d2f",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -131,6 +131,7 @@
     "amp config model-providers edit-key",
     "amp config model-providers edit-router",
     "amp config model-providers list",
+    "amp config model-providers set-priority",
     "amp config model-providers setup-guide",
     "amp config model-providers show",
     "amp config model-providers test",
