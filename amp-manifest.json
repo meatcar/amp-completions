@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789977627-g00fb3c",
+  "amp_version": "0.0.1790020866-g863e06",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -192,6 +192,7 @@
     "amp orb simulator",
     "amp orb simulator serve",
     "amp orb system-metrics",
+    "amp orb-spawner",
     "amp permissions",
     "amp permissions add",
     "amp permissions edit",
@@ -277,6 +278,7 @@
     "amp version"
   ],
   "flag_paths": [
+    "amp --amp-env",
     "amp --attach",
     "amp --color",
     "amp --execute",
@@ -516,6 +518,10 @@
     "amp orb simulator serve --device",
     "amp orb simulator serve --port",
     "amp orb simulator serve --runtime",
+    "amp orb-spawner --amp-url",
+    "amp orb-spawner --backend-url",
+    "amp orb-spawner --concurrency",
+    "amp orb-spawner --token",
     "amp permissions add --context",
     "amp permissions add --to",
     "amp permissions add --workspace",
@@ -657,6 +663,7 @@
   ],
   "manifest_version": 1,
   "persistent_flag_paths": [
+    "amp --amp-env",
     "amp --attach",
     "amp --color",
     "amp --execute",
