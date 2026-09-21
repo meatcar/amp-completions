@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1789948881-g0115d6",
+  "amp_version": "0.0.1789977627-g00fb3c",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -243,13 +243,10 @@
     "amp skill repositories",
     "amp svc",
     "amp svc gmail",
-    "amp svc gmail create_draft",
     "amp svc gmail list_labels",
     "amp svc gmail modify_labels",
     "amp svc gmail read_message",
     "amp svc gmail search_messages",
-    "amp svc gmail send_draft",
-    "amp svc gmail send_message",
     "amp threads",
     "amp threads archive",
     "amp threads color",
@@ -619,12 +616,9 @@
     "amp skill remove --target",
     "amp skill repositories --json",
     "amp svc --input",
-    "amp svc gmail create_draft --input",
     "amp svc gmail modify_labels --input",
     "amp svc gmail read_message --input",
     "amp svc gmail search_messages --input",
-    "amp svc gmail send_draft --input",
-    "amp svc gmail send_message --input",
     "amp threads --include-archived",
     "amp threads --limit",
     "amp threads --offset",
