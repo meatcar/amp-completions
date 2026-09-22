@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790064360-g301b53",
+  "amp_version": "0.0.1790107230-g213fd2",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -177,6 +177,8 @@
     "amp oauth-clients edit",
     "amp oauth-clients list",
     "amp orb",
+    "amp orb desktop",
+    "amp orb desktop ensure",
     "amp orb id-token",
     "amp orb portal",
     "amp orb portal access",
@@ -496,6 +498,7 @@
     "amp oauth-clients edit --scope",
     "amp oauth-clients edit --workspace",
     "amp oauth-clients list --workspace",
+    "amp orb desktop ensure --json",
     "amp orb id-token --audience",
     "amp orb id-token --subject-scope",
     "amp orb id-token --ttl-seconds",
