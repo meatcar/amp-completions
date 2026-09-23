@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790152370-gb14497",
+  "amp_version": "0.0.1790179256-g22a153",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -530,12 +530,6 @@
     "amp orb simulator serve --runtime",
     "amp orb-spawner --amp-url",
     "amp orb-spawner --backend-url",
-    "amp orb-spawner --on-create",
-    "amp orb-spawner --on-delete",
-    "amp orb-spawner --on-exec",
-    "amp orb-spawner --on-get",
-    "amp orb-spawner --on-pause",
-    "amp orb-spawner --on-resume",
     "amp orb-spawner --token",
     "amp permissions add --context",
     "amp permissions add --to",
