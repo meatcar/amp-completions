@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790113007-gc0c797",
+  "amp_version": "0.0.1790126705-g941b49",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -62,6 +62,9 @@
     ],
     "amp threads continue": [
       "c"
+    ],
+    "amp threads import claude": [
+      "claude-code"
     ],
     "amp threads list": [
       "l",
@@ -257,6 +260,10 @@
     "amp threads continue",
     "amp threads delete",
     "amp threads export",
+    "amp threads import",
+    "amp threads import claude",
+    "amp threads import codex",
+    "amp threads import detect",
     "amp threads label",
     "amp threads list",
     "amp threads markdown",
@@ -594,6 +601,7 @@
     "amp runner dirs add --runner-id",
     "amp runner dirs list --runner-id",
     "amp runner dirs remove --runner-id",
+    "amp runner list --json",
     "amp secrets delete --app",
     "amp secrets delete --json",
     "amp secrets delete --project",
@@ -640,6 +648,19 @@
     "amp threads archive --unarchive",
     "amp threads continue --last",
     "amp threads continue --pick",
+    "amp threads import claude --all",
+    "amp threads import claude --claude-dir",
+    "amp threads import claude --dry-run",
+    "amp threads import claude --json",
+    "amp threads import claude --limit",
+    "amp threads import claude --max-age",
+    "amp threads import codex --all",
+    "amp threads import codex --codex-dir",
+    "amp threads import codex --dry-run",
+    "amp threads import codex --json",
+    "amp threads import codex --limit",
+    "amp threads import codex --max-age",
+    "amp threads import detect --json",
     "amp threads list --include-archived",
     "amp threads list --installation-id",
     "amp threads list --json",
