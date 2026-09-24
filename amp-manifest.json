@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790236865-g40d640",
+  "amp_version": "0.0.1790280054-g69c3da",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -185,6 +185,7 @@
     "amp orb id-token",
     "amp orb portal",
     "amp orb portal access",
+    "amp orb provider",
     "amp orb restart-processes",
     "amp orb service",
     "amp orb service ensure",
@@ -197,7 +198,6 @@
     "amp orb simulator",
     "amp orb simulator serve",
     "amp orb system-metrics",
-    "amp orb-spawner",
     "amp permissions",
     "amp permissions add",
     "amp permissions edit",
@@ -314,6 +314,7 @@
     "amp --remote-control-terminal",
     "amp --runner-dir",
     "amp --settings-file",
+    "amp --share",
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
@@ -516,6 +517,9 @@
     "amp orb portal --take-over",
     "amp orb portal --thread",
     "amp orb portal --title",
+    "amp orb provider --amp-url",
+    "amp orb provider --backend-url",
+    "amp orb provider --token",
     "amp orb restart-processes --thread",
     "amp orb service ensure --json",
     "amp orb service logs --lines",
@@ -528,9 +532,6 @@
     "amp orb simulator serve --device",
     "amp orb simulator serve --port",
     "amp orb simulator serve --runtime",
-    "amp orb-spawner --amp-url",
-    "amp orb-spawner --backend-url",
-    "amp orb-spawner --token",
     "amp permissions add --context",
     "amp permissions add --to",
     "amp permissions add --workspace",
@@ -713,6 +714,7 @@
     "amp --remote-control-terminal",
     "amp --runner-dir",
     "amp --settings-file",
+    "amp --share",
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
