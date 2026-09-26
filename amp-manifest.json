@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790380893-geeadb1",
+  "amp_version": "0.0.1790409661-ga80292",
   "command_aliases": {
     "amp domains remove": [
       "rm"
