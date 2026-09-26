@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790366488-gdd50cc",
+  "amp_version": "0.0.1790380893-geeadb1",
   "command_aliases": {
     "amp domains remove": [
       "rm"
