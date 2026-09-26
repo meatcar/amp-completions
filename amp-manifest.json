@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790409661-ga80292",
+  "amp_version": "0.0.1790452833-gea4e33",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -103,6 +103,9 @@
   },
   "command_paths": [
     "amp",
+    "amp account",
+    "amp account list",
+    "amp account switch",
     "amp apps",
     "amp apps create",
     "amp apps delete",
@@ -420,6 +423,7 @@
     "amp domains remove --yes",
     "amp files get --output",
     "amp git-setup --uninstall",
+    "amp logout --all",
     "amp mcp add --env",
     "amp mcp add --header",
     "amp mcp add --workspace",
