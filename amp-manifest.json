@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790467310-ge147a9",
+  "amp_version": "0.0.1790539243-gec0608",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -678,7 +678,6 @@
     "amp threads new --visibility",
     "amp threads search --json",
     "amp threads search --limit",
-    "amp threads search --offset",
     "amp threads share --visibility",
     "amp threads share multiplayer ttl --days",
     "amp threads share multiplayer ttl --hours",
