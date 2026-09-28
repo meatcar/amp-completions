@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790539243-gec0608",
+  "amp_version": "0.0.1790553713-gdc78d4",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -233,6 +233,9 @@
     "amp projects update",
     "amp report-bug",
     "amp runner",
+    "amp runner desktop",
+    "amp runner desktop allow",
+    "amp runner desktop status",
     "amp runner dirs",
     "amp runner dirs add",
     "amp runner dirs list",
