@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790625640-gdbe3f3",
+  "amp_version": "0.0.1790654442-g4d5eed",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -298,6 +298,7 @@
     "amp --amp-env",
     "amp --attach",
     "amp --color",
+    "amp --desktop",
     "amp --execute",
     "amp --executor",
     "amp --fast",
@@ -710,6 +711,7 @@
     "amp --amp-env",
     "amp --attach",
     "amp --color",
+    "amp --desktop",
     "amp --execute",
     "amp --executor",
     "amp --fast",
