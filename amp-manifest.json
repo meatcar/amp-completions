@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790553713-gdc78d4",
+  "amp_version": "0.0.1790625640-gdbe3f3",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -183,12 +183,14 @@
     "amp oauth-clients edit",
     "amp oauth-clients list",
     "amp orb",
+    "amp orb bootstrap",
     "amp orb desktop",
     "amp orb desktop ensure",
     "amp orb id-token",
     "amp orb portal",
     "amp orb portal access",
     "amp orb provider",
+    "amp orb redact-output",
     "amp orb restart-processes",
     "amp orb service",
     "amp orb service ensure",
@@ -527,6 +529,7 @@
     "amp orb provider --amp-url",
     "amp orb provider --backend-url",
     "amp orb provider --token",
+    "amp orb redact-output --thread",
     "amp orb restart-processes --thread",
     "amp orb service ensure --json",
     "amp orb service logs --lines",
