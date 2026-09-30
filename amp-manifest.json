@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790712063-gb89205",
+  "amp_version": "0.0.1790798464-g1c0876",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -520,7 +520,6 @@
     "amp orb portal --thread",
     "amp orb portal --title",
     "amp orb provider --amp-url",
-    "amp orb provider --backend-url",
     "amp orb provider --token",
     "amp orb redact-output --thread",
     "amp orb restart-processes --thread",
