@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1790827300-gda351f",
+  "amp_version": "0.0.1790887360-g98f23e",
   "command_aliases": {
     "amp domains remove": [
       "rm"
