@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1791259278-gaa84b5",
+  "amp_version": "0.0.1791319628-gaa9b64",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -329,6 +329,7 @@
     "amp --version",
     "amp --visibility",
     "amp -v",
+    "amp account list --json",
     "amp apps create --icon",
     "amp apps delete --yes",
     "amp apps deploy --arg",
