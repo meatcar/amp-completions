@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1791576029-g70ed39",
+  "amp_version": "0.0.1791662459-g6be10b",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -349,9 +349,7 @@
     "amp config external-agents show --json",
     "amp config external-agents update --append-system-prompt",
     "amp config external-agents update --append-system-prompt-file",
-    "amp config external-agents update --commit-attribution",
     "amp config external-agents update --mark-set-up",
-    "amp config external-agents update --no-commit-attribution",
     "amp config external-agents update --post-install-script",
     "amp config external-agents update --post-install-script-file",
     "amp config external-agents update --remove-append-system-prompt",
