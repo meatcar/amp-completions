@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1791964847-g13f24a",
+  "amp_version": "0.0.1792008042-gef0030",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -325,6 +325,7 @@
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
+    "amp --timings",
     "amp --title",
     "amp --version",
     "amp --visibility",
@@ -730,6 +731,7 @@
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
+    "amp --timings",
     "amp --title",
     "amp --version",
     "amp --visibility",
