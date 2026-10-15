@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1792051250-g2fc5c0",
+  "amp_version": "0.0.1792094445-g3475f5",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -270,6 +270,7 @@
     "amp threads import claude",
     "amp threads import codex",
     "amp threads import detect",
+    "amp threads import opencode",
     "amp threads label",
     "amp threads list",
     "amp threads markdown",
@@ -668,6 +669,15 @@
     "amp threads import codex --recheck",
     "amp threads import codex --reimport",
     "amp threads import detect --json",
+    "amp threads import opencode --all",
+    "amp threads import opencode --dry-run",
+    "amp threads import opencode --expect-user-email",
+    "amp threads import opencode --json",
+    "amp threads import opencode --limit",
+    "amp threads import opencode --max-age",
+    "amp threads import opencode --opencode-dir",
+    "amp threads import opencode --recheck",
+    "amp threads import opencode --reimport",
     "amp threads list --include-archived",
     "amp threads list --installation-id",
     "amp threads list --json",
