@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1792123242-g03edc7",
+  "amp_version": "0.0.1792180867-g4437d4",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -147,6 +147,7 @@
     "amp domains list",
     "amp domains remove",
     "amp files",
+    "amp files delete",
     "amp files get",
     "amp git-setup",
     "amp last",
