@@ -3,6 +3,7 @@ import importlib.util
 import io
 import json
 import os
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -130,7 +131,7 @@ class MergeGateTest(unittest.TestCase):
             (root / "pulls.json").write_text(json.dumps(pulls))
             (root / "files.json").write_text(json.dumps(files))
             fake = root / "gh"
-            fake.write_text(FAKE_GH)
+            fake.write_text(f"#!{sys.executable}\n{FAKE_GH}")
             fake.chmod(0o755)
             environment = {"PATH": f"{root}:{os.environ['PATH']}", "FAKE_GH": str(root)}
             with (
@@ -172,8 +173,7 @@ class MergeGateTest(unittest.TestCase):
                 self.assertEqual(posted, [])
 
 
-FAKE_GH = """#!/usr/bin/env python3
-import json, os, sys
+FAKE_GH = """import json, os, sys
 from pathlib import Path
 
 root = Path(os.environ["FAKE_GH"])
