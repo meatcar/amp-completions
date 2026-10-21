@@ -91,7 +91,7 @@ class CompletionSmokeTest(unittest.TestCase):
 
     def test_completes_file_and_directory_values(self) -> None:
         self.assertIn("README.md", self.complete("--settings-file", ""))
-        self.assertIn("src/", self.complete("apps", "deploy", "workspace/app", ""))
+        self.assertIn("src/", self.complete("clone", "owner/repo", ""))
 
 
 if __name__ == "__main__":
