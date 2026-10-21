@@ -5,6 +5,9 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).parents[1]
+WAIT_FOR_GATE = (
+    '.github/scripts/wait-for-merge-gate "${{ github.repository }}" "$HEAD_SHA" "$MERGE_GATE_APP_ID"'
+)
 
 
 class ValidationWorkflowTest(unittest.TestCase):
@@ -106,11 +109,63 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertNotIn("gh pr merge \"$PULL_REQUEST\" --auto", self.workflow)
         self.assertNotIn("gh pr review", self.workflow)
 
+    def test_requests_merge_gate_before_merging(self) -> None:
+        self.assertIn("gh workflow run merge-gate.yml", self.workflow)
+        self.assertLess(
+            self.workflow.index(WAIT_FOR_GATE),
+            self.workflow.index('gh pr checks "$PULL_REQUEST" --required'),
+        )
+
+    def test_locks_failure_issues_against_outside_comments(self) -> None:
+        self.assertLess(
+            self.workflow.index("--label amp-update-failure"),
+            self.workflow.index('/issues/$issue/lock"'),
+        )
+
     def test_escalates_repeated_failures_and_persists_state(self) -> None:
         self.assertIn("python3 -m amp_completions.failure_escalation", self.workflow)
         self.assertIn("amp-update-failure", self.workflow)
         self.assertIn("actions/upload-artifact@", self.workflow)
         self.assertIn("if: always()", self.workflow)
+
+
+class MergeGateWorkflowTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.workflow = (ROOT / ".github/workflows/merge-gate.yml").read_text()
+
+    def test_pins_actions_to_commit_shas(self) -> None:
+        action_references = re.findall(r"uses:\s*([^\s]+)(?:\s+#\s+(\S+))?", self.workflow)
+
+        self.assertTrue(action_references)
+        self.assertTrue(
+            all(
+                re.fullmatch(r"[^@]+@[0-9a-f]{40}", reference) and version
+                for reference, version in action_references
+            )
+        )
+
+    def test_runs_trusted_base_code_without_pull_request_checkout(self) -> None:
+        self.assertIn("pull_request_target:", self.workflow)
+        self.assertIn("workflow_dispatch:", self.workflow)
+        self.assertNotRegex(self.workflow, r"\n  pull_request:")
+        self.assertNotIn("ref:", self.workflow)
+        self.assertNotIn("head.sha", self.workflow)
+        self.assertIn("persist-credentials: false", self.workflow)
+
+    def test_reports_with_environment_scoped_app_token(self) -> None:
+        self.assertIn("permissions:\n  contents: read\n", self.workflow)
+        self.assertIn("environment: merge-gate", self.workflow)
+        self.assertIn("secrets.MERGE_GATE_PRIVATE_KEY", self.workflow)
+        self.assertIn("GH_TOKEN: ${{ steps.app.outputs.token }}", self.workflow)
+        self.assertNotIn("github.token", self.workflow)
+
+    def test_runs_gate_script_isolated_from_repository_modules(self) -> None:
+        self.assertIn("python3 -I .github/scripts/merge_gate.py", self.workflow)
+        self.assertNotIn("PYTHONPATH", self.workflow)
+
+    def test_reevaluates_when_base_branch_is_edited(self) -> None:
+        self.assertIn("      - edited\n", self.workflow)
 
 
 class FlakeUpdateWorkflowTest(unittest.TestCase):
@@ -156,9 +211,23 @@ class FlakeUpdateWorkflowTest(unittest.TestCase):
         self.assertIn("action_required", self.workflow)
         self.assertIn('gh run rerun "$validation_run"', self.workflow)
 
-    def test_labels_but_does_not_merge_updates(self) -> None:
+    def test_merges_only_after_validation_and_merge_gate(self) -> None:
         self.assertIn("flake-update", self.workflow)
-        self.assertNotIn("gh pr merge", self.workflow)
+        self.assertIn("gh workflow run merge-gate.yml", self.workflow)
+        self.assertLess(
+            self.workflow.index('gh run watch "$VALIDATION_RUN" --exit-status'),
+            self.workflow.index(WAIT_FOR_GATE),
+        )
+        self.assertLess(
+            self.workflow.index('gh pr checks "$PULL_REQUEST" --required'),
+            self.workflow.index("gh pr merge"),
+        )
+        self.assertIn("base_sha=$(git rev-parse origin/", self.workflow)
+        self.assertLess(
+            self.workflow.index('if [ "$latest_base_sha" != "$BASE_SHA" ]; then'),
+            self.workflow.index("gh pr merge"),
+        )
+        self.assertIn('--match-head-commit "$HEAD_SHA"', self.workflow)
 
 
 class RenovateConfigTest(unittest.TestCase):

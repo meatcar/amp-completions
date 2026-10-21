@@ -1,0 +1,50 @@
+name: Merge gate
+
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+  workflow_dispatch:
+    inputs:
+      pull_request:
+        description: Pull request number
+        required: true
+        type: number
+
+permissions:
+  contents: read
+
+concurrency:
+  group: merge-gate-${{ github.event.pull_request.number || inputs.pull_request }}
+  cancel-in-progress: true
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-26.04
+    # NOTE: The environment limits the gate app key to runs from main.
+    environment: merge-gate
+    steps:
+      - name: Check out trusted base
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Create gate app token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ vars.MERGE_GATE_CLIENT_ID }}
+          private-key: ${{ secrets.MERGE_GATE_PRIVATE_KEY }}
+          permission-checks: write
+          permission-contents: read
+          permission-pull-requests: read
+      - name: Report merge gate
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          PULL_REQUEST: ${{ github.event.pull_request.number || inputs.pull_request }}
+        run: >-
+          python3 -I .github/scripts/merge_gate.py
+          --repository "$GITHUB_REPOSITORY"
+          --pull-request "$PULL_REQUEST"

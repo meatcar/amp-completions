@@ -46,6 +46,8 @@ jobs:
             --pr-body /tmp/pr-body.md \
             --output "$GITHUB_OUTPUT"
           nix flake check
+          echo "base_sha=$(git rev-parse origin/${{ github.event.repository.default_branch }})" \
+            >> "$GITHUB_OUTPUT"
       - name: Push validated candidate
         if: steps.candidate.outputs.update_available == 'true'
         run: |
@@ -95,14 +97,34 @@ jobs:
             exit 1
           fi
           gh run rerun "$validation_run"
-      - name: Label update
+          gh workflow run merge-gate.yml \
+            --ref "${{ github.event.repository.default_branch }}" \
+            -f pull_request="$pull_request"
+          echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
+          echo "validation_run=$validation_run" >> "$GITHUB_OUTPUT"
+      - name: Label and merge validated update
         if: steps.candidate.outputs.update_available == 'true'
         env:
+          BASE_SHA: ${{ steps.candidate.outputs.base_sha }}
           GH_TOKEN: ${{ github.token }}
+          HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
+          MERGE_GATE_APP_ID: ${{ vars.MERGE_GATE_APP_ID }}
           PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+          VALIDATION_RUN: ${{ steps.pull-request.outputs.validation_run }}
         run: |
           gh label create flake-update \
             --color 5319e7 \
             --description "Generated non-Amp Nix flake input update" \
             --force
           gh pr edit "$PULL_REQUEST" --add-label flake-update
+          gh run watch "$VALIDATION_RUN" --exit-status
+          .github/scripts/wait-for-merge-gate "${{ github.repository }}" "$HEAD_SHA" "$MERGE_GATE_APP_ID"
+          gh pr checks "$PULL_REQUEST" --required
+          latest_base_sha=$(gh api \
+            "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" \
+            --jq '.object.sha')
+          if [ "$latest_base_sha" != "$BASE_SHA" ]; then
+            echo "Base branch advanced from $BASE_SHA to $latest_base_sha; next run will rebuild" >&2
+            exit 1
+          fi
+          gh pr merge "$PULL_REQUEST" --squash --match-head-commit "$HEAD_SHA"

