@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+repository=${1:?repository required}
+head_sha=${2:?head SHA required}
+app_id=${3:?merge gate app ID required}
+
+for _ in $(seq 1 24); do
+  conclusion=$(gh api \
+    "repos/$repository/commits/$head_sha/check-runs?check_name=merge-gate&app_id=$app_id&filter=latest" \
+    --jq '[.check_runs[] | select(.status == "completed")] | max_by(.id) | .conclusion // empty')
+  if [ -n "$conclusion" ]; then
+    if [ "$conclusion" = success ]; then
+      exit 0
+    fi
+    echo "merge-gate concluded $conclusion for $head_sha" >&2
+    exit 1
+  fi
+  sleep 5
+done
+echo "merge-gate did not report for $head_sha" >&2
+exit 1
