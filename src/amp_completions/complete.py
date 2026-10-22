@@ -4,16 +4,19 @@ import argparse
 import json
 import os
 import subprocess
+import sys
 
 
 DEFAULT_AMP = "amp"
-THREAD_PAGE_SIZE = 500
+QUERY_TIMEOUT_SECONDS = 5
+THREAD_LIMIT = 500
 COMPLETION_ERRORS = (
     OSError,
     subprocess.SubprocessError,
     json.JSONDecodeError,
     KeyError,
     TypeError,
+    ValueError,
 )
 
 
@@ -23,68 +26,80 @@ def run_json(amp: str, arguments: list[str]) -> object:
         check=True,
         capture_output=True,
         text=True,
+        timeout=QUERY_TIMEOUT_SECONDS,
     )
     return json.loads(result.stdout)
 
 
+def text(value: object) -> str:
+    if value is None:
+        return ""
+    if not isinstance(value, str):
+        raise TypeError(f"expected text, got {type(value).__name__}")
+    return value
+
+
+def candidate(value: object, description: object = None) -> tuple[str, str]:
+    value = text(value)
+    if not value or any(character.isspace() for character in value):
+        raise ValueError(f"invalid completion value: {value!r}")
+    return value, text(description)
+
+
+def records(response: object) -> list[dict[str, object]]:
+    if not isinstance(response, list) or not all(isinstance(item, dict) for item in response):
+        raise TypeError("expected a list of objects")
+    return response
+
+
 def complete_threads(amp: str) -> list[tuple[str, str]]:
-    values = []
-    offset = 0
-    while True:
-        result = subprocess.run(
-            [
-                amp,
-                "threads",
-                "--include-archived",
-                "--limit",
-                str(THREAD_PAGE_SIZE),
-                "--offset",
-                str(offset),
-                "list",
-                "--json",
-            ],
-            check=True,
-            capture_output=True,
-            text=True,
-        )
-        threads = json.loads(result.stdout)
-        values.extend(
-            (thread["id"], thread.get("title") or "") for thread in threads
-        )
-        if len(threads) < THREAD_PAGE_SIZE:
-            return values
-        offset += len(threads)
+    threads = run_json(
+        amp,
+        [
+            "threads",
+            "--include-archived",
+            "--limit",
+            str(THREAD_LIMIT),
+            "--offset",
+            "0",
+            "list",
+            "--json",
+        ],
+    )
+    return [candidate(thread["id"], thread.get("title")) for thread in records(threads)]
 
 
 def complete_projects(amp: str) -> list[tuple[str, str]]:
     return [
-        (
-            f"{project['namespace']}/{project['name']}",
-            project.get("repositoryURL") or "",
+        candidate(
+            f"{text(project['namespace'])}/{text(project['name'])}",
+            project.get("repositoryURL"),
         )
-        for project in run_json(amp, ["projects", "list", "--json"])
+        for project in records(run_json(amp, ["projects", "list", "--json"]))
     ]
 
 
 def complete_tools(amp: str) -> list[tuple[str, str]]:
     return [
-        (tool["name"], tool.get("description") or "")
-        for tool in run_json(amp, ["tools", "list", "--json"])
+        candidate(tool["name"], tool.get("description"))
+        for tool in records(run_json(amp, ["tools", "list", "--json"]))
     ]
 
 
 def complete_skills(amp: str) -> list[tuple[str, str]]:
     response = run_json(amp, ["skill", "list", "--json"])
+    if not isinstance(response, dict):
+        raise TypeError("expected an object")
     return [
-        (skill["name"], skill.get("description") or "")
-        for skill in response["skills"]
+        candidate(skill["name"], skill.get("description"))
+        for skill in records(response["skills"])
     ]
 
 
 def complete_mcp_servers(amp: str, *, remote: bool) -> list[tuple[str, str]]:
     return [
-        (server["name"], server.get("source") or "")
-        for server in run_json(amp, ["mcp", "list", "--json"])
+        candidate(server["name"], server.get("source"))
+        for server in records(run_json(amp, ["mcp", "list", "--json"]))
         if (server.get("source") == "account") == remote
     ]
 
@@ -92,15 +107,15 @@ def complete_mcp_servers(amp: str, *, remote: bool) -> list[tuple[str, str]]:
 def complete_model_providers(amp: str) -> list[tuple[str, str]]:
     values = []
     providers = run_json(amp, ["config", "model-providers", "list", "--json"])
-    for provider in providers:
-        name = provider.get("name") or ""
-        provider_type = provider.get("type") or ""
+    for provider in records(providers):
+        name = text(provider.get("name"))
+        provider_type = text(provider.get("type"))
         description = (
             f"{name} ({provider_type})"
             if name and provider_type
             else name or provider_type
         )
-        values.append((provider["id"], description))
+        values.append(candidate(provider["id"], description))
     return values
 
 
@@ -109,11 +124,12 @@ def complete_domains(amp: str) -> list[tuple[str, str]]:
     for scope in ("--user", "--workspace"):
         try:
             domains = run_json(amp, ["domains", "list", scope, "--json"])
+            values.extend(
+                candidate(domain["hostname"], domain.get("status"))
+                for domain in records(domains)
+            )
         except COMPLETION_ERRORS:
             continue
-        values.extend(
-            (domain["hostname"], domain.get("status") or "") for domain in domains
-        )
     return values
 
 
@@ -129,6 +145,29 @@ COMPLETERS = {
 }
 
 
+def render(values: list[tuple[str, str]]) -> str:
+    lines = []
+    seen = set()
+    for value, description in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        description = " ".join(description.split())
+        lines.append(f"{value}\t{description}" if description else value)
+    return "".join(f"{line}\n" for line in lines)
+
+
+def write_output(output: str) -> None:
+    try:
+        sys.stdout.write(output)
+        sys.stdout.flush()
+    except BrokenPipeError:
+        # NOTE: Python flushes stdout again at exit; point it at devnull to keep that flush silent.
+        # see https://docs.python.org/3/library/signal.html#note-on-sigpipe
+        devnull = os.open(os.devnull, os.O_WRONLY)
+        os.dup2(devnull, sys.stdout.fileno())
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("resource", choices=COMPLETERS)
@@ -136,20 +175,10 @@ def main() -> None:
 
     try:
         amp = os.environ.get("AMP_BIN", DEFAULT_AMP)
-        values = COMPLETERS[arguments.resource](amp)
+        output = render(COMPLETERS[arguments.resource](amp))
     except COMPLETION_ERRORS:
         return
-
-    seen = set()
-    for value, description in values:
-        if value in seen:
-            continue
-        seen.add(value)
-        description = " ".join(description.split())
-        if description:
-            print(f"{value}\t{description}")
-        else:
-            print(value)
+    write_output(output)
 
 
 if __name__ == "__main__":
