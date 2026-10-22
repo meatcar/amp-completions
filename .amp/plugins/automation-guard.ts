@@ -98,12 +98,16 @@ function ghViolation(words: string[]): string | null {
   const [subcommand] = words.slice(1).filter((word) => !word.startsWith("-"));
   if (GUARDED_GH_COMMANDS.has(subcommand))
     return `gh ${subcommand} changes account or repository settings`;
+  if (subcommand === "pr" && words.some((word) => /^--admin(=|$)/.test(word)))
+    return "gh pr --admin bypasses branch protection";
   if (subcommand !== "api") return null;
 
   const method = (optionValue(words, ["-X", "--method"]) ?? "GET").toUpperCase();
   const sendsBody = words.some((word) => /^(-f|-F|--field|--raw-field|--input)(=|$)/.test(word));
   if (method === "GET" && !sendsBody) return null;
   const path = words.find((word) => /^\/?repos\//.test(word))?.replace(/^\//, "");
+  if (path && /\/pulls\/\d+\/merge\/?$/.test(path))
+    return "gh api merges a pull request outside gh pr merge";
   return path && ALLOWED_API_WRITES.test(path)
     ? null
     : `gh api writes ${path ?? "an unknown route"}`;
