@@ -1,7 +1,7 @@
 # Amp completions
 
-Shell completion for the [Amp CLI](https://ampcode.com/manual), generated from
-Amp's own help output and distributed as a checked-in
+Shell completion for the [Amp](https://ampcode.com) coding agent's `amp` CLI,
+generated from Amp's own help output and distributed as a checked-in
 [Carapace spec](https://carapace-sh.github.io/carapace-bin/spec.html).
 
 It works with Bash, Zsh, Fish, Nushell, PowerShell, and other shells supported
@@ -139,14 +139,31 @@ parser, policy, workflow, and completion tests.
   resource argument, a changed enum, or a changed JSON response shape requires
   a generator/helper update.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
-  non-Amp root inputs weekly. It cannot change `llm-agents` or files other than
-  `flake.lock`.
+  non-Amp root inputs weekly and merges them under the same rules. It cannot
+  change `llm-agents` or files other than `flake.lock`.
+- [Merge gate](.github/workflows/merge-gate.yml) is a required check, posted by
+  a dedicated GitHub App, that decides whether a pull request may merge without
+  review. It runs trusted code from `main` and passes only open pull requests
+  from this repository into `main` whose changes stay within `src/`, `tests/`,
+  `amp.yaml`, `amp-manifest.json`, `flake.lock`, and `README.md`. Changes to
+  workflows, Nix files, or agent configuration always need a maintainer.
 - Renovate updates SHA-pinned GitHub Actions. It does not update Nix inputs or
   merge pull requests. Current and pending updates appear in the
   [Dependency Dashboard](https://github.com/meatcar/amp-completions/issues/14).
 
 All update candidates run the same checks as pull requests before they are
-pushed. The workflows use scoped GitHub tokens and no repository secrets.
+pushed. The update workflows use the scoped `GITHUB_TOKEN`; only the merge gate
+holds a credential, its app key, in a `merge-gate` environment limited to
+`main`. When an Amp update fails twice in a row at the same step, the workflow
+opens a locked `amp-update-failure` issue and closes it after the next successful
+run.
+
+Amp threads that handle this automation without supervision start with
+`[automation-guard: unattended]`. The
+[automation guard plugin](.amp/plugins/automation-guard.ts) then restricts them
+to an allowlist of tools and asks the owner before they edit guardrail files,
+write to other repositories, contact unknown hosts, or bypass branch
+protection. Threads a person starts are unaffected.
 
 ### Maintainer notes
 
@@ -158,9 +175,16 @@ gh workflow run update-flake-inputs.yml --ref main
 ```
 
 Rerun the owning workflow to rebuild a failed, stale, or conflicting candidate
-from current `main`; do not edit generated branches. `flake-update` and
-Renovate pull requests always require review. `safe-update` marks additive Amp
-updates; validated compatibility changes also merge automatically.
+from current `main`; do not edit generated branches. Renovate pull requests
+always require review. `safe-update` marks additive Amp updates; validated
+compatibility changes also merge automatically.
+
+The merge gate needs a GitHub App with checks write, contents read, and pull
+requests read, installed only on this repository. Store its client ID as the
+`MERGE_GATE_CLIENT_ID` variable and its private key as the
+`MERGE_GATE_PRIVATE_KEY` secret in the `merge-gate` environment, set the
+repository variable `MERGE_GATE_APP_ID`, and require the `merge-gate` check
+from that app on `main`.
 
 The reusable `automation/amp-update` and `automation/flake-update` branches may
 appear beside `main` after squash merges. Either may be deleted when it has no
