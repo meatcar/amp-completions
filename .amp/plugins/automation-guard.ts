@@ -172,6 +172,30 @@ function sanitize(value: unknown): unknown {
   return value;
 }
 
+type ActivationThread = Pick<PluginThread, "id" | "messages" | "parentThreadID">;
+
+export async function isUnattended(
+  thread: ActivationThread,
+  cache: Map<string, boolean>,
+): Promise<boolean> {
+  const cached = cache.get(thread.id);
+  if (cached !== undefined) return cached;
+  const [first] = await thread
+    .messages({ full: true, from: "start", limit: 1, roles: ["user"] })
+    .catch(() => []);
+  // NOTE: Fail closed without caching when the first message is not readable yet.
+  if (!first || first.content.length === 0) return true;
+  const marked = first.content.some(
+    (block) => block.type === "text" && block.text.includes(UNATTENDED_MARKER),
+  );
+  // NOTE: Active threads need approval to start threads in other processes, so only a
+  // parent seen by this process can pass activation on. Unknown parents are attended.
+  const parent = marked ? null : await thread.parentThreadID().catch(() => null);
+  const active = marked || (parent !== null && cache.get(parent) === true);
+  cache.set(thread.id, active);
+  return active;
+}
+
 export default function (amp: PluginAPI) {
   const root = amp.system.workspaceRoot
     ? amp.helpers.filePathFromURI(amp.system.workspaceRoot)
@@ -221,24 +245,7 @@ export default function (amp: PluginAPI) {
   }
 
   const activation = new Map<string, boolean>();
-
-  async function isActive(thread: PluginThread): Promise<boolean> {
-    const cached = activation.get(thread.id);
-    if (cached !== undefined) return cached;
-    const [first] = await thread.messages({ full: true, from: "start", limit: 1 }).catch(() => []);
-    // NOTE: Fail closed without caching when the first message is not readable yet.
-    if (first?.role !== "user" || first.content.length === 0) return true;
-    const marked = first.content.some(
-      (block) => block.type === "text" && block.text.includes(UNATTENDED_MARKER),
-    );
-    const parent = marked ? null : await thread.parentThreadID().catch(() => undefined);
-    const inherited = parent ? activation.get(parent) : false;
-    // NOTE: Unknown parent (lookup failed or other process) fails closed without caching.
-    if (parent === undefined || inherited === undefined) return true;
-    const active = marked || inherited;
-    activation.set(thread.id, active);
-    return active;
-  }
+  const isActive = (thread: PluginThread) => isUnattended(thread, activation);
 
   amp.on("tool.call", async (event, ctx): Promise<ToolCallResult> => {
     if (!(await isActive(ctx.thread))) return { action: "allow" };
