@@ -1,4 +1,5 @@
 import dataclasses
+import re
 from collections.abc import Iterator
 
 from .help_model import Argument, Command, Option
@@ -31,7 +32,18 @@ class Exempt:
     reason: str
 
 
+@dataclasses.dataclass(frozen=True)
+class Documented:
+    """Values listed in help text, matched by the `values` group of `pattern`."""
+
+    pattern: str
+
+
+Rule = Literals | Resource | Paths | Exempt | Documented
 Completion = Literals | Resource | Paths | Exempt
+VALUE_SEPARATOR = re.compile(r",\s+or\s+|,\s+|\s+or\s+")
+PARENTHESIZED = Documented(r"\((?P<values>[^()]+)\)\.?$")
+ROUTERS = Documented(r": (?P<values>[^:]+)$")
 
 FILES = Paths("$files")
 DIRECTORIES = Paths("$directories")
@@ -59,12 +71,13 @@ RESOURCES = frozenset(
 ORB_SIZES = Literals(
     ("a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge")
 )
+AGENT_MODES = Literals(("low", "medium", "high", "ultra"))
 NEW_NAME = Exempt("new name")
 NOT_LISTED = Exempt("Amp has no JSON listing for these values")
 SHAPE_UNKNOWN = Exempt("JSON listing shape not observed in fixtures")
 
 # NOTE: Lookup order: EXACT, FLAG_DEFAULTS, PLACEHOLDER_DEFAULTS, then *-file flags.
-EXACT: dict[tuple[str, ...], Completion] = {
+EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "--attach"): FILES,
     ("amp", "--executor"): Literals(("local", "orb")),
     ("amp", "--runner-dir"): Exempt("directory on a remote runner"),
@@ -72,34 +85,10 @@ EXACT: dict[tuple[str, ...], Completion] = {
     ("amp", "clone", "<repository>"): Exempt("repository reference"),
     ("amp", "clone", "<target-dir>"): DIRECTORIES,
     ("amp", "completions", "<shell>"): Literals(("bash", "zsh", "fish", "pwsh")),
-    ("amp", "config", "model-providers", "add-router", "<router>"): Literals(
-        (
-            "ollama-cloud",
-            "openrouter",
-            "vercel",
-            "cloudflare",
-            "google-cloud-agent-platform",
-            "google-ai-studio",
-            "amazon-bedrock",
-            "opencode-go",
-            "custom-url",
-        )
-    ),
+    ("amp", "config", "model-providers", "add-router", "<router>"): ROUTERS,
     ("amp", "config", "model-providers", "check-access", "--provider-key"): MODEL_PROVIDERS,
     ("amp", "config", "model-providers", "delete", "<id>"): MODEL_PROVIDERS,
-    ("amp", "config", "model-providers", "setup-guide", "<router>"): Literals(
-        (
-            "ollama-cloud",
-            "openrouter",
-            "vercel",
-            "cloudflare",
-            "google-cloud-agent-platform",
-            "google-ai-studio",
-            "amazon-bedrock",
-            "opencode-go",
-            "custom-url",
-        )
-    ),
+    ("amp", "config", "model-providers", "setup-guide", "<router>"): ROUTERS,
     ("amp", "config", "model-providers", "show", "<id>"): MODEL_PROVIDERS,
     ("amp", "config", "model-providers", "test", "<id>"): MODEL_PROVIDERS,
     ("amp", "domains", "add", "<hostname>"): Exempt("new hostname"),
@@ -136,7 +125,7 @@ EXACT: dict[tuple[str, ...], Completion] = {
     ("amp", "orb", "simulator", "serve", "--device"): NOT_LISTED,
     ("amp", "orb", "simulator", "serve", "--runtime"): NOT_LISTED,
     ("amp", "permissions", "add", "--to"): FILES,
-    ("amp", "permissions", "add", "<action>"): Literals(("allow", "reject", "ask", "delegate")),
+    ("amp", "permissions", "add", "<action>"): Documented(r"^Permission action: (?P<values>.+)$"),
     ("amp", "plugins", "add", "--target"): Literals(("system", "workspace")),
     ("amp", "plugins", "exec", "<event>"): Exempt("event names not documented"),
     ("amp", "plugins", "exec", "<plugin>"): FILES,
@@ -167,15 +156,17 @@ EXACT: dict[tuple[str, ...], Completion] = {
     ("amp", "threads", "import", "opencode", "--opencode-dir"): DIRECTORIES,
     ("amp", "threads", "import", "opencode", "<sessionIds>"): Exempt("external session IDs"),
     ("amp", "threads", "visibility", "<visibility>"): Literals(("private", "workspace", "group")),
+    ("amp", "tools", "list", "--mode"): AGENT_MODES,
+    ("amp", "tools", "show", "--mode"): AGENT_MODES,
 }
 
-FLAG_DEFAULTS: dict[str, Completion] = {
-    "api-format": Literals(("chat-completions", "responses", "anthropic-messages", "google-genai")),
-    "auth": Literals(("oauth", "bearer", "none", "workload-identity")),
+FLAG_DEFAULTS: dict[str, Rule] = {
+    "api-format": Documented(r"API format: (?P<values>.+)$"),
+    "auth": Documented(r"^Authentication type: (?P<values>[^.(]+?)(?: \(|\.|$)"),
     "client-id": NOT_LISTED,
     "cloudflare-account-id": NOT_LISTED,
     "cloudflare-gateway-id": NOT_LISTED,
-    "context": Literals(("thread", "subagent")),
+    "context": PARENTHESIZED,
     "deployment": NOT_LISTED,
     "features": Literals(
         (
@@ -192,7 +183,7 @@ FLAG_DEFAULTS: dict[str, Completion] = {
     "log-file": FILES,
     "log-level": Literals(("debug", "info", "warn", "error", "audit")),
     "mcp-config": FILES,
-    "mode": Literals(("low", "medium", "high", "ultra")),
+    "mode": Documented(r"\((?P<values>[^()]+?), or a plugin mode"),
     "name": NEW_NAME,
     "oauth-client-id": NOT_LISTED,
     "orb-size": ORB_SIZES,
@@ -203,12 +194,12 @@ FLAG_DEFAULTS: dict[str, Completion] = {
     "runner-id": SHAPE_UNKNOWN,
     "settings-file": FILES,
     "ship-behavior": Literals(("ship", "push-to-branch", "custom")),
-    "subject-scope": Literals(("project", "thread", "user", "workspace")),
-    "visibility": Literals(("private", "unlisted", "workspace", "group")),
+    "subject-scope": Documented(r"\((?P<values>[^();]+); default"),
+    "visibility": PARENTHESIZED,
 }
 
 FREE_FORM = Exempt("free-form value")
-PLACEHOLDER_DEFAULTS: dict[str, Completion] = {
+PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
     "connection-id": MODEL_PROVIDERS,
     "dir": DIRECTORIES,
     "project": PROJECTS,
@@ -294,6 +285,12 @@ class Field:
         assert value is not None
         return value.name
 
+    @property
+    def description(self) -> str:
+        described = self.option if self.option is not None else self.argument
+        assert described is not None
+        return described.description
+
 
 @dataclasses.dataclass(frozen=True)
 class Resolution:
@@ -328,6 +325,13 @@ def fields(command: Command, parents: tuple[str, ...] = ()) -> Iterator[Field]:
         yield from fields(child, path)
 
 
+def documented_values(rule: Documented, field: Field) -> Literals:
+    match = re.search(rule.pattern, field.description)
+    if not match:
+        raise ValueError("help no longer documents values")
+    return Literals(tuple(VALUE_SEPARATOR.split(match["values"].strip())))
+
+
 def resolve(root: Command) -> Resolution:
     completions: dict[tuple[str, ...], Completion] = {}
     diagnostics = []
@@ -335,7 +339,7 @@ def resolve(root: Command) -> Resolution:
     used_placeholder_defaults = set()
 
     for field in fields(root):
-        completion = EXACT.get(field.key)
+        completion: Rule | None = EXACT.get(field.key)
         if completion is None and field.option is not None:
             completion = FLAG_DEFAULTS.get(field.option.name)
             if completion is not None:
@@ -349,6 +353,12 @@ def resolve(root: Command) -> Resolution:
         if completion is None:
             diagnostics.append(f"no completion rule: {' '.join(field.key)}")
             continue
+        if isinstance(completion, Documented):
+            try:
+                completion = documented_values(completion, field)
+            except ValueError as error:
+                diagnostics.append(f"{error}: {' '.join(field.key)}")
+                continue
         completions[field.key] = completion
 
     live_keys = {field.key for field in fields(root)}

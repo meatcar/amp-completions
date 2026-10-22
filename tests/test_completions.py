@@ -1,7 +1,12 @@
 import unittest
 
-from amp_completions import completions
+from amp_completions import completions, help_model
 from test_generate import tree
+
+
+def visibility(description: str) -> completions.Resolution:
+    option = help_model.parse_option("--visibility <visibility>", description)
+    return completions.resolve(help_model.Command("amp", options=[option]))
 
 
 class ResolveTest(unittest.TestCase):
@@ -34,6 +39,31 @@ class ResolveTest(unittest.TestCase):
         )
         self.assertNotIn(
             "rule targets no value-taking field: amp threads color <thread>",
+            resolution.diagnostics,
+        )
+
+    def test_documented_values_follow_help_text(self) -> None:
+        resolution = visibility("Set thread visibility (private, workspace, or secret)")
+
+        self.assertEqual(
+            resolution.completions[("amp", "--visibility")],
+            completions.Literals(("private", "workspace", "secret")),
+        )
+
+    def test_changed_value_documentation_drops_completion_and_reports_it(self) -> None:
+        resolution = visibility("Set thread visibility; see the docs")
+
+        self.assertNotIn(("amp", "--visibility"), resolution.completions)
+        self.assertIn(
+            "help no longer documents values: amp --visibility", resolution.diagnostics
+        )
+
+    def test_unsafe_documented_values_are_reported(self) -> None:
+        resolution = visibility("Set thread visibility (private, $files)")
+
+        self.assertNotIn(("amp", "--visibility"), resolution.completions)
+        self.assertTrue(
+            any("invalid literal completion" in d for d in resolution.diagnostics),
             resolution.diagnostics,
         )
 

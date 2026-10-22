@@ -43,13 +43,17 @@ class RenderTest(unittest.TestCase):
         command = help_model.Command(
             "amp",
             "Amp CLI",
-            options=[help_model.parse_option("-m, --mode <value>", "Set the `mode`")],
+            options=[
+                help_model.parse_option(
+                    "-m, --mode <value>", "Set the `mode` (low, medium, high, ultra, or a plugin mode)"
+                )
+            ],
             commands=[help_model.Command("version", "Print the version", aliases=["v"])],
         )
 
         rendered = generate.render(command, "1.2.3")
 
-        self.assertIn('"-m, --mode=": "Set the \'mode\'"', rendered)
+        self.assertIn('"-m, --mode=": "Set the \'mode\' (low, medium, high, ultra, or a plugin mode)"', rendered)
         self.assertIn('"mode": ["low", "medium", "high", "ultra"]', rendered)
         self.assertIn('- name: "version"\n    aliases: ["v"]', rendered)
 

@@ -54,7 +54,6 @@ completion:
     "log-level": ["debug", "info", "warn", "error", "audit"]
     "log-file": ["$files"]
     "mcp-config": ["$files"]
-    "mode": ["low", "medium", "high", "ultra"]
     "features": ["fast\tFaster serving", "plaid\tUltrafast serving", "pro\tGPT-5.6 Pro mode", "$uniquelist(,)"]
     "executor": ["local", "orb"]
     "attach": ["$files"]
@@ -1034,7 +1033,7 @@ commands:
                 "api-key-file": ["$files"]
                 "api-format": ["chat-completions", "responses", "anthropic-messages", "google-genai"]
               positional:
-                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "google-ai-studio", "amazon-bedrock", "opencode-go", "custom-url"]
+                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "ngrok", "google-cloud-agent-platform", "google-ai-studio", "amazon-bedrock", "azure-ai-foundry", "opencode-go", "deepseek", "zai", "alibaba", "kimi", "fireworks", "baseten", "nvidia", "custom-url"]
           - name: "edit-router"
             description: "Edit an AI model router"
             flags:
