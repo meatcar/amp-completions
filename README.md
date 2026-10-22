@@ -126,12 +126,13 @@ parser, policy, workflow, and completion tests.
 
 ## Automated updates
 
-- [Update Amp](.github/workflows/update-amp.yml) checks hourly. Every generated
-  update that passes the parser, determinism, scope, size, and full flake checks
+- [Update Amp](.github/workflows/update-amp.yml) checks four times a day,
+  shortly after upstream Amp packages usually update. Every generated update
+  that passes the parser, determinism, scope, size, and full flake checks
   merges automatically if `main` still matches the revision that was checked.
   Command and flag removals remain visible in the pull request but do not
   require maintainer input. If `main` advances during validation, the next
-  hourly run rebuilds the candidate instead of merging stale validation.
+  scheduled run rebuilds the candidate instead of merging stale validation.
   New and changed commands, flags, aliases, and help text are discovered
   automatically. Semantic completion rules are curated: an existing recognized
   flag name automatically keeps its enum or filesystem completion, but a new

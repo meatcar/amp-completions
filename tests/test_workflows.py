@@ -43,8 +43,8 @@ class UpdateWorkflowTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         cls.workflow = (ROOT / ".github/workflows/update-amp.yml").read_text()
 
-    def test_runs_hourly_and_manually(self) -> None:
-        self.assertRegex(self.workflow, r'cron: ["\']\d+ \* \* \* \*["\']')
+    def test_runs_after_each_upstream_update_window_and_manually(self) -> None:
+        self.assertIn('cron: "15 0,5,10,22 * * *"', self.workflow)
         self.assertIn("workflow_dispatch:", self.workflow)
 
     def test_pins_actions_to_commit_shas(self) -> None:
