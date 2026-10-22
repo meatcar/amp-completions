@@ -9,22 +9,56 @@ from pathlib import Path
 
 
 ANSI_ESCAPE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
-SECTION = re.compile(r"^[A-Z][^:]*:$")
 COMMAND = re.compile(
-    r"^(?P<indent> +)(?P<name>\S+)\s{2,}(?P<summary>.+)$"
+    r"^  (?P<name>[^\s<\[]+)(?: [<\[]\S+)*\s{2,}(?P<summary>.+)$"
 )
+ARGUMENT_LINE = re.compile(r"^  (?P<token>\S+)(?:\s{2,}(?P<description>.+))?$")
+BARE_ARGUMENT = re.compile(r"^[A-Za-z][\w-]*(?:\.\.\.)?$")
+BUILTIN_HELP_COMMAND = ("help", "display help for command")
 COMMAND_ALIAS = re.compile(r"^\[alias: (?P<aliases>[^]]+)]\s+(?P<description>.+)$")
 OPTION_LINE = re.compile(
-    r"^  (?P<declaration>-{1,2}\S+(?:, -{1,2}\S+)?(?: (?:<[^>]+>|\[[^]]+]))?)"
+    r"^  (?P<names>-{1,2}[^\s,]+(?:, -{1,2}[^\s,]+)?)(?: (?P<value><[^>]+>|\[[^]]+]))?"
     r"(?:\s{2,}(?P<description>.+))?$"
 )
-OPTION_ARGUMENT = re.compile(r"\s+(?P<argument><[^>]+>|\[[^]]+])$")
+PLACEHOLDER = re.compile(r"^(?:<(?P<required>[^<>\[\]\s]+)>|\[(?P<optional>[^<>\[\]\s]+)])$")
+USAGE_STRUCTURE = frozenset({"[options]", "[command]"})
 
 
-@dataclasses.dataclass
+class HelpFormatError(ValueError):
+    pass
+
+
+@dataclasses.dataclass(frozen=True)
+class Argument:
+    name: str
+    required: bool = True
+    variadic: bool = False
+    description: str = ""
+
+    @property
+    def signature(self) -> str:
+        name = f"{self.name}..." if self.variadic else self.name
+        return f"<{name}>" if self.required else f"[{name}]"
+
+
+@dataclasses.dataclass(frozen=True)
 class Option:
-    declaration: str
-    description: str
+    names: tuple[str, ...]
+    description: str = ""
+    value: Argument | None = None
+
+    @property
+    def name(self) -> str:
+        return self.canonical.lstrip("-")
+
+    @property
+    def canonical(self) -> str:
+        return next((name for name in self.names if name.startswith("--")), self.names[0])
+
+    @property
+    def spec_key(self) -> str:
+        suffix = "" if self.value is None else "=" if self.value.required else "?"
+        return ", ".join(self.names) + suffix
 
 
 @dataclasses.dataclass
@@ -34,6 +68,28 @@ class Command:
     aliases: list[str] = dataclasses.field(default_factory=list)
     options: list[Option] = dataclasses.field(default_factory=list)
     commands: list["Command"] = dataclasses.field(default_factory=list)
+    arguments: list[Argument] = dataclasses.field(default_factory=list)
+
+
+def parse_placeholder(token: str) -> Argument:
+    match = PLACEHOLDER.fullmatch(token)
+    if not match:
+        raise HelpFormatError(f"unrecognized placeholder: {token}")
+    name = match["required"] or match["optional"]
+    variadic = name.endswith("...")
+    return Argument(
+        name.removesuffix("..."),
+        required=match["required"] is not None,
+        variadic=variadic,
+    )
+
+
+def parse_option(declaration: str, description: str = "") -> Option:
+    match = OPTION_LINE.fullmatch(f"  {declaration}")
+    if not match or match["description"]:
+        raise HelpFormatError(f"unrecognized option declaration: {declaration}")
+    value = parse_placeholder(match["value"]) if match["value"] else None
+    return Option(tuple(match["names"].split(", ")), description, value)
 
 
 def run_amp(amp: str, arguments: list[str]) -> str:
@@ -48,81 +104,130 @@ def run_amp(amp: str, arguments: list[str]) -> str:
     return output.replace(str(Path.home()), "~")
 
 
+def section_lines(help_text: str, title: str) -> list[str]:
+    lines = []
+    in_section = False
+    for line in help_text.splitlines():
+        if line == title:
+            in_section = True
+            continue
+        if in_section and line and not line[0].isspace():
+            break
+        if in_section:
+            lines.append(line)
+    return lines
+
+
 def parse_commands(help_text: str) -> list[Command]:
     commands: list[Command] = []
-    in_commands = False
-    current: Command | None = None
-    wrap_indent = ""
+    continues: Command | None = None
+    summary_column = None
 
-    for line in help_text.splitlines():
-        if line == "Commands:":
-            in_commands = True
+    for line in section_lines(help_text, "Commands:"):
+        indent = len(line) - len(line.lstrip())
+        if not line.strip():
             continue
-        if in_commands and SECTION.match(line):
-            break
-        if not in_commands:
+        if indent > 2:
+            if continues and indent == summary_column:
+                continues.description += f" {line.strip()}"
+            elif indent != summary_column:
+                continues = None
             continue
-
-        if current and line.startswith(wrap_indent) and line[len(wrap_indent) :].strip():
-            current.description += " " + line.strip()
-            continue
-
         match = COMMAND.match(line)
-        current = None
-        if not match or len(match["indent"]) != 2:
+        if not match:
+            raise HelpFormatError(f"unrecognized command line: {line.strip()}")
+        summary_column = match.start("summary")
+        continues = None
+        if (match["name"], match["summary"]) == BUILTIN_HELP_COMMAND:
             continue
 
         alias = COMMAND_ALIAS.match(match["summary"])
         aliases = alias["aliases"].split(", ") if alias else []
         description = alias["description"] if alias else match["summary"]
-        current = Command(match["name"], description, aliases)
-        wrap_indent = " " * match.start("summary")
-        commands.append(current)
+        continues = Command(match["name"], description, aliases)
+        commands.append(continues)
 
     return commands
 
 
 def parse_options(help_text: str) -> list[Option]:
-    lines = help_text.splitlines()
+    lines = section_lines(help_text, "Options:")
     options: list[Option] = []
-    in_options = False
     index = 0
 
     while index < len(lines):
         line = lines[index]
-        if line == "Options:":
-            in_options = True
-            index += 1
-            continue
-        if in_options and SECTION.match(line):
-            break
-        option_line = OPTION_LINE.match(line) if in_options else None
-        if not option_line:
-            index += 1
-            continue
-
-        declaration = option_line["declaration"]
-        description = [option_line["description"]] if option_line["description"] else []
         index += 1
-        while index < len(lines):
-            next_line = lines[index]
-            if OPTION_LINE.match(next_line) or SECTION.match(next_line):
-                break
-            if next_line.strip():
-                description.append(next_line.strip())
+        if not line.strip():
+            continue
+        option_line = OPTION_LINE.match(line)
+        if not option_line:
+            raise HelpFormatError(f"unrecognized option line: {line.strip()}")
+
+        description = [option_line["description"]] if option_line["description"] else []
+        while index < len(lines) and not lines[index].startswith("  -"):
+            if lines[index].strip():
+                description.append(lines[index].strip())
             index += 1
-        options.append(Option(normalize_option(declaration), " ".join(description)))
+        value = parse_placeholder(option_line["value"]) if option_line["value"] else None
+        options.append(
+            Option(tuple(option_line["names"].split(", ")), " ".join(description), value)
+        )
 
     return options
 
 
-def normalize_option(declaration: str) -> str:
-    argument = OPTION_ARGUMENT.search(declaration)
-    if not argument:
-        return declaration
+def parse_argument_descriptions(help_text: str) -> dict[str, str]:
+    descriptions: dict[str, list[str]] = {}
+    current = None
+    for line in section_lines(help_text, "Arguments:"):
+        if line.startswith("  ") and not line.startswith("   "):
+            match = ARGUMENT_LINE.match(line)
+            token = match["token"] if match else line.strip()
+            if BARE_ARGUMENT.fullmatch(token):
+                token = f"<{token}>"
+            current = parse_placeholder(token).name
+            descriptions[current] = [match["description"]] if match and match["description"] else []
+        elif line.strip():
+            if current is None:
+                raise HelpFormatError(f"unrecognized argument line: {line.strip()}")
+            descriptions[current].append(line.strip())
+    return {name: " ".join(lines) for name, lines in descriptions.items()}
 
-    suffix = "=" if argument["argument"].startswith("<") else "?"
-    return OPTION_ARGUMENT.sub("", declaration) + suffix
+
+def parse_arguments(help_text: str) -> list[Argument]:
+    usage = next((line for line in help_text.splitlines() if line.startswith("Usage: ")), None)
+    descriptions = parse_argument_descriptions(help_text)
+    if usage is None:
+        if descriptions:
+            raise HelpFormatError("Arguments section without a Usage line")
+        return []
+
+    tokens = usage.removeprefix("Usage: ").split()
+    operands = [token for token in tokens if token[0] in "<["]
+    if tokens[len(tokens) - len(operands) :] != operands:
+        raise HelpFormatError(f"unrecognized usage: {usage}")
+    arguments = [
+        parse_placeholder(token)
+        for token in operands
+        if token not in USAGE_STRUCTURE
+    ]
+    names = [argument.name for argument in arguments]
+    if len(names) != len(set(names)) or not set(descriptions) <= set(names):
+        raise HelpFormatError(f"usage does not match Arguments section: {usage}")
+    return [
+        dataclasses.replace(argument, description=descriptions.get(argument.name, ""))
+        for argument in arguments
+    ]
+
+
+def parse_command_help(command: Command, path: tuple[str, ...], help_text: str) -> None:
+    try:
+        command.options = parse_options(help_text)
+        command.commands = parse_commands(help_text)
+        command.arguments = parse_arguments(help_text)
+    except HelpFormatError as error:
+        raise HelpFormatError(f"{' '.join(path)}: {error}") from error
 
 
 def inspect_amp(amp: str) -> tuple[Command, str]:
@@ -130,8 +235,8 @@ def inspect_amp(amp: str) -> tuple[Command, str]:
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as executor:
         version_result = executor.submit(run_amp, amp, ["version"])
         help_text = run_amp(amp, ["--help"])
-        root = Command("amp", "Amp CLI", options=parse_options(help_text))
-        root.commands = parse_commands(help_text)
+        root = Command("amp", "Amp CLI")
+        parse_command_help(root, ("amp",), help_text)
         frontier = [([command.name], command) for command in root.commands]
 
         while frontier:
@@ -141,8 +246,7 @@ def inspect_amp(amp: str) -> tuple[Command, str]:
             )
             next_frontier = []
             for (path, command), command_help in zip(frontier, help_texts, strict=True):
-                command.options = parse_options(command_help)
-                command.commands = parse_commands(command_help)
+                parse_command_help(command, ("amp", *path), command_help)
                 next_frontier.extend(
                     ([*path, child.name], child) for child in command.commands
                 )
@@ -283,11 +387,6 @@ POSITIONAL_ANY_COMPLETIONS = {
 }
 
 
-def completion_name(declaration: str) -> str:
-    names = declaration.rstrip("=?*").split(", ")
-    return next((name[2:] for name in names if name.startswith("--")), names[0].lstrip("-"))
-
-
 def emit_mapping(lines: list[str], indent: int, name: str, values: list[tuple[str, str]]) -> None:
     if not values:
         return
@@ -325,12 +424,12 @@ def emit_command(
         lines,
         property_indent,
         option_key,
-        [(option.declaration, option.description) for option in command.options],
+        [(option.spec_key, option.description) for option in command.options],
     )
 
     completions = []
     for option in command.options:
-        name = completion_name(option.declaration)
+        name = option.name
         path_completion = PATH_FLAG_COMPLETIONS.get((*path, name))
         path_dynamic_completion = PATH_DYNAMIC_FLAG_COMPLETIONS.get((*path, name))
         if path_completion:
@@ -400,11 +499,6 @@ def render(root: Command, version: str) -> str:
     return "\n".join([*header, *emit_command(root, 0), ""])
 
 
-def canonical_flag(declaration: str) -> str:
-    names = declaration.rstrip("=?*").split(", ")
-    return next((name for name in names if name.startswith("--")), names[0])
-
-
 def build_manifest(root: Command, version: str) -> dict[str, object]:
     command_paths = []
     command_aliases = {}
@@ -418,7 +512,7 @@ def build_manifest(root: Command, version: str) -> dict[str, object]:
         if command.aliases:
             command_aliases[command_path] = sorted(command.aliases)
         for option in command.options:
-            flag_path = f"{command_path} {canonical_flag(option.declaration)}"
+            flag_path = f"{command_path} {option.canonical}"
             flag_paths.append(flag_path)
             if command is root:
                 persistent_flag_paths.append(flag_path)

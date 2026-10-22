@@ -788,7 +788,7 @@ commands:
               "--personal": "Use remote MCP servers in your personal settings"
               "--workspace=": "Use remote MCP servers for a workspace name or ID"
               "--project=": "Use remote MCP servers for a project ID or namespace/name"
-              "--current-project": "Use the current directory's Amp project --headers replaces all stored headers; use '[]' to remove them. An empty value, as in '[[\"X-Api-Key\",\"\"]]', keeps the stored value, and a kept secret value stays secret."
+              "--current-project": "Use the current directory's Amp project"
             completion:
               flag:
                 "auth": ["oauth", "bearer", "none"]
@@ -870,6 +870,25 @@ commands:
         description: "Manage OAuth credentials for MCP servers in local CLI settings"
         flags:
           "-h, --help": "display help for command"
+        commands:
+          - name: "login"
+            description: "Register OAuth client credentials for an MCP server"
+            flags:
+              "--server-url=": "MCP server URL"
+              "--client-id=": "OAuth client ID"
+              "--client-secret=": "OAuth client secret; only necessary for clients that don't support PKCE"
+              "--scopes=": "OAuth scopes (comma-separated)"
+              "--auth-url=": "OAuth authorization URL (discovered if not provided)"
+              "--token-url=": "OAuth token URL (discovered if not provided)"
+              "-h, --help": "display help for command"
+          - name: "logout"
+            description: "Remove OAuth credentials for an MCP server"
+            flags:
+              "-h, --help": "display help for command"
+          - name: "status"
+            description: "Show OAuth status for an MCP server"
+            flags:
+              "-h, --help": "display help for command"
       - name: "doctor"
         description: "Check MCP server status"
       - name: "approve"
@@ -888,7 +907,7 @@ commands:
         description: "Manage model provider keys and subscriptions"
         flags:
           "--json": "print the complete non-secret connection data as JSON"
-          "--workspace": "list keys of your current workspace instead of your user Docs: https://ampcode.com/docs/customize/model-routing"
+          "--workspace": "list keys of your current workspace instead of your user"
         commands:
           - name: "list"
             description: "List model provider keys and subscriptions in priority order"
@@ -933,7 +952,7 @@ commands:
               "--thread=": "a thread you own to associate the inference with (defaults to AMP_THREAD_ID)"
               "--provider-key=": "specific model provider key UUID (Amp staff only)"
               "--prompt=": "test prompt (Amp staff only)"
-              "--reasoning-effort=": "reasoning effort (defaults to the model routing default) This performs an actual inference request with a short prompt, so it may incur a small cost: on your model provider account when the model is served by your own key, or a few Amp credits otherwise. The inference is associated with the thread from --thread or AMP_THREAD_ID, which must be a thread you own; any existing thread works and its transcript is not changed."
+              "--reasoning-effort=": "reasoning effort (defaults to the model routing default)"
             completion:
               flag:
                 "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
@@ -1036,7 +1055,7 @@ commands:
               "--openai-identity-provider-id=": "openai: identity provider ID (idp_\u2026); with the other ID flags, switches the credential to workload identity federation"
               "--openai-service-account-id=": "openai: service account ID (user-\u2026); with the other ID flags, switches the credential to workload identity federation"
               "--anthropic-workspace-id=": "anthropic workspace (wrkspc_\u2026) the connection uses; required only for keys or federation rules enabled in more than one workspace"
-              "--acknowledge-hosted-in-china": "confirm without a prompt that you understand this provider is hosted in China Only the given flags change; other settings are kept."
+              "--acknowledge-hosted-in-china": "confirm without a prompt that you understand this provider is hosted in China"
             completion:
               flag:
                 "api-key-file": ["$files"]
@@ -1280,7 +1299,7 @@ commands:
           "--no-widget": "Stop adding Amp's review widget"
           "--domain=": "Serve the deployment at this hostname on one of the owner's custom domains"
           "--no-domain": "Serve the deployment at its onamp.dev URL again"
-          "--take-over": "Move the --domain hostname from a thread portal or another deployment to this one With one saved target, amp boxes deploy uses it. With several, name one, as in amp boxes deploy production, or run it in the folder of a target's app. Each app is a folder with its own .amp/box.yaml; the deploy builds and runs the nearest one."
+          "--take-over": "Move the --domain hostname from a thread portal or another deployment to this one"
       - name: "deployments"
         description: "List independent deployments on a machine"
       - name: "cancel-deploy"
