@@ -89,6 +89,13 @@ class CompletionSmokeTest(unittest.TestCase):
             {"custom", "push-to-branch", "ship"},
         )
 
+    def test_completes_fixed_positional_values(self) -> None:
+        self.assertEqual(self.complete("completions", ""), {"bash", "fish", "pwsh", "zsh"})
+        self.assertIn("T-123", self.complete("threads", "context", ""))
+
+    def test_completes_comma_separated_features(self) -> None:
+        self.assertEqual(self.complete("--features", "fast,"), {"fast,plaid", "fast,pro"})
+
     def test_completes_file_and_directory_values(self) -> None:
         self.assertIn("README.md", self.complete("--settings-file", ""))
         self.assertIn("src/", self.complete("clone", "owner/repo", ""))

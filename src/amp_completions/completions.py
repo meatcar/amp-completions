@@ -1,0 +1,366 @@
+import dataclasses
+from collections.abc import Iterator
+
+from .help_model import Argument, Command, Option
+
+
+@dataclasses.dataclass(frozen=True)
+class Literals:
+    values: tuple[str, ...]
+    delimiter: str | None = None
+
+    def __post_init__(self) -> None:
+        for value in self.values:
+            token = value.split("\t", 1)[0]
+            if not token or token.startswith("$") or any(c.isspace() for c in token):
+                raise ValueError(f"invalid literal completion: {value!r}")
+
+
+@dataclasses.dataclass(frozen=True)
+class Resource:
+    name: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Paths:
+    macro: str
+
+
+@dataclasses.dataclass(frozen=True)
+class Exempt:
+    reason: str
+
+
+Completion = Literals | Resource | Paths | Exempt
+
+FILES = Paths("$files")
+DIRECTORIES = Paths("$directories")
+DOMAINS = Resource("domains")
+LOCAL_MCP_SERVERS = Resource("local-mcp-servers")
+MODEL_PROVIDERS = Resource("model-providers")
+PROJECTS = Resource("projects")
+REMOTE_MCP_SERVERS = Resource("remote-mcp-servers")
+SKILLS = Resource("skills")
+THREADS = Resource("threads")
+TOOLS = Resource("tools")
+RESOURCES = frozenset(
+    {
+        DOMAINS,
+        LOCAL_MCP_SERVERS,
+        MODEL_PROVIDERS,
+        PROJECTS,
+        REMOTE_MCP_SERVERS,
+        SKILLS,
+        THREADS,
+        TOOLS,
+    }
+)
+
+ORB_SIZES = Literals(
+    ("a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge")
+)
+NEW_NAME = Exempt("new name")
+NOT_LISTED = Exempt("Amp has no JSON listing for these values")
+SHAPE_UNKNOWN = Exempt("JSON listing shape not observed in fixtures")
+
+# NOTE: Lookup order: EXACT, FLAG_DEFAULTS, PLACEHOLDER_DEFAULTS, then *-file flags.
+EXACT: dict[tuple[str, ...], Completion] = {
+    ("amp", "--attach"): FILES,
+    ("amp", "--executor"): Literals(("local", "orb")),
+    ("amp", "--runner-dir"): Exempt("directory on a remote runner"),
+    ("amp", "account", "switch", "<account>"): SHAPE_UNKNOWN,
+    ("amp", "clone", "<repository>"): Exempt("repository reference"),
+    ("amp", "clone", "<target-dir>"): DIRECTORIES,
+    ("amp", "completions", "<shell>"): Literals(("bash", "zsh", "fish", "pwsh")),
+    ("amp", "config", "model-providers", "add-router", "<router>"): Literals(
+        (
+            "ollama-cloud",
+            "openrouter",
+            "vercel",
+            "cloudflare",
+            "google-cloud-agent-platform",
+            "google-ai-studio",
+            "amazon-bedrock",
+            "opencode-go",
+            "custom-url",
+        )
+    ),
+    ("amp", "config", "model-providers", "check-access", "--provider-key"): MODEL_PROVIDERS,
+    ("amp", "config", "model-providers", "delete", "<id>"): MODEL_PROVIDERS,
+    ("amp", "config", "model-providers", "setup-guide", "<router>"): Literals(
+        (
+            "ollama-cloud",
+            "openrouter",
+            "vercel",
+            "cloudflare",
+            "google-cloud-agent-platform",
+            "google-ai-studio",
+            "amazon-bedrock",
+            "opencode-go",
+            "custom-url",
+        )
+    ),
+    ("amp", "config", "model-providers", "show", "<id>"): MODEL_PROVIDERS,
+    ("amp", "config", "model-providers", "test", "<id>"): MODEL_PROVIDERS,
+    ("amp", "domains", "add", "<hostname>"): Exempt("new hostname"),
+    ("amp", "domains", "check", "<hostname>"): DOMAINS,
+    ("amp", "domains", "remove", "<hostname>"): DOMAINS,
+    ("amp", "logout", "<account>"): SHAPE_UNKNOWN,
+    ("amp", "mcp", "add", "<args>"): Exempt("server command arguments"),
+    ("amp", "mcp", "add", "<name>"): NEW_NAME,
+    ("amp", "mcp", "approve", "<name>"): LOCAL_MCP_SERVERS,
+    ("amp", "mcp", "doctor", "<name>"): LOCAL_MCP_SERVERS,
+    ("amp", "mcp", "oauth", "login", "<server-name>"): LOCAL_MCP_SERVERS,
+    ("amp", "mcp", "oauth", "logout", "<server-name>"): LOCAL_MCP_SERVERS,
+    ("amp", "mcp", "oauth", "status", "<server-name>"): LOCAL_MCP_SERVERS,
+    ("amp", "mcp", "remote", "add", "<name>"): NEW_NAME,
+    ("amp", "mcp", "remote", "check", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remote", "login", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remote", "logout", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remote", "remove", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remote", "tools", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remote", "update", "<server>"): REMOTE_MCP_SERVERS,
+    ("amp", "mcp", "remove", "<name>"): LOCAL_MCP_SERVERS,
+    ("amp", "net", "route", "<exit-node>"): NOT_LISTED,
+    ("amp", "oauth-clients", "create", "--type"): Exempt("client types not documented"),
+    ("amp", "oauth-clients", "edit", "<id>"): NOT_LISTED,
+    ("amp", "orb", "portal", "--hostname"): DOMAINS,
+    ("amp", "orb", "portal", "<target>"): Exempt("port or loopback URL"),
+    ("amp", "orb", "portal", "access", "<value>"): Exempt("access values not documented"),
+    ("amp", "orb", "provider", "<script>"): FILES,
+    ("amp", "orb", "service", "logs", "<name>"): NOT_LISTED,
+    ("amp", "orb", "service", "restart", "<name>"): NOT_LISTED,
+    ("amp", "orb", "service", "start", "<name>"): NOT_LISTED,
+    ("amp", "orb", "service", "status", "<name>"): NOT_LISTED,
+    ("amp", "orb", "service", "stop", "<name>"): NOT_LISTED,
+    ("amp", "orb", "simulator", "serve", "--device"): NOT_LISTED,
+    ("amp", "orb", "simulator", "serve", "--runtime"): NOT_LISTED,
+    ("amp", "permissions", "add", "--to"): FILES,
+    ("amp", "permissions", "add", "<action>"): Literals(("allow", "reject", "ask", "delegate")),
+    ("amp", "plugins", "add", "--target"): Literals(("system", "workspace")),
+    ("amp", "plugins", "exec", "<event>"): Exempt("event names not documented"),
+    ("amp", "plugins", "exec", "<plugin>"): FILES,
+    ("amp", "plugins", "remove", "--target"): Literals(("system", "workspace")),
+    ("amp", "plugins", "remove", "<plugin>"): NOT_LISTED,
+    ("amp", "plugins", "update", "<plugin>"): NOT_LISTED,
+    ("amp", "projects", "create", "<repository>"): Exempt("repository reference"),
+    ("amp", "projects", "snapshots", "delete", "--resource"): ORB_SIZES,
+    ("amp", "runner", "desktop", "allow", "<permission>"): Exempt("permission names not documented"),
+    ("amp", "runner", "dirs", "add", "<paths>"): DIRECTORIES,
+    ("amp", "runner", "dirs", "remove", "<paths>"): DIRECTORIES,
+    ("amp", "secrets", "delete", "<name>"): SHAPE_UNKNOWN,
+    ("amp", "secrets", "get", "<name>"): SHAPE_UNKNOWN,
+    ("amp", "secrets", "history", "<name>"): SHAPE_UNKNOWN,
+    ("amp", "secrets", "set", "<name>"): NEW_NAME,
+    ("amp", "skill", "add", "<source>"): FILES,
+    ("amp", "skill", "info", "<name>"): SKILLS,
+    ("amp", "skill", "remove", "<name>"): SKILLS,
+    ("amp", "svc", "<service>"): Exempt("service list differs from MCP server listings"),
+    ("amp", "svc", "<tool>"): Exempt("service tools are not listed"),
+    ("amp", "threads", "color", "<color>"): Literals(
+        ("blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan")
+    ),
+    ("amp", "threads", "import", "claude", "--claude-dir"): DIRECTORIES,
+    ("amp", "threads", "import", "claude", "<sessionIds>"): Exempt("external session IDs"),
+    ("amp", "threads", "import", "codex", "--codex-dir"): DIRECTORIES,
+    ("amp", "threads", "import", "codex", "<threadIds>"): Exempt("external session IDs"),
+    ("amp", "threads", "import", "opencode", "--opencode-dir"): DIRECTORIES,
+    ("amp", "threads", "import", "opencode", "<sessionIds>"): Exempt("external session IDs"),
+    ("amp", "threads", "visibility", "<visibility>"): Literals(("private", "workspace", "group")),
+}
+
+FLAG_DEFAULTS: dict[str, Completion] = {
+    "api-format": Literals(("chat-completions", "responses", "anthropic-messages", "google-genai")),
+    "auth": Literals(("oauth", "bearer", "none", "workload-identity")),
+    "client-id": NOT_LISTED,
+    "cloudflare-account-id": NOT_LISTED,
+    "cloudflare-gateway-id": NOT_LISTED,
+    "context": Literals(("thread", "subagent")),
+    "deployment": NOT_LISTED,
+    "features": Literals(
+        (
+            "fast\tFaster serving",
+            "plaid\tUltrafast serving",
+            "pro\tGPT-5.6 Pro mode",
+        ),
+        delimiter=",",
+    ),
+    "google-cloud-project": NOT_LISTED,
+    "icon": FILES,
+    "id": Exempt("new exit node ID"),
+    "installation-id": NOT_LISTED,
+    "log-file": FILES,
+    "log-level": Literals(("debug", "info", "warn", "error", "audit")),
+    "mcp-config": FILES,
+    "mode": Literals(("low", "medium", "high", "ultra")),
+    "name": NEW_NAME,
+    "oauth-client-id": NOT_LISTED,
+    "orb-size": ORB_SIZES,
+    "output": FILES,
+    "reasoning-effort": Literals(("none", "minimal", "low", "medium", "high", "xhigh", "max")),
+    "remote": Exempt("new Git remote name"),
+    "repository-mode": Literals(("github", "mapped")),
+    "runner-id": SHAPE_UNKNOWN,
+    "settings-file": FILES,
+    "ship-behavior": Literals(("ship", "push-to-branch", "custom")),
+    "subject-scope": Literals(("project", "thread", "user", "workspace")),
+    "visibility": Literals(("private", "unlisted", "workspace", "group")),
+}
+
+FREE_FORM = Exempt("free-form value")
+PLACEHOLDER_DEFAULTS: dict[str, Completion] = {
+    "connection-id": MODEL_PROVIDERS,
+    "dir": DIRECTORIES,
+    "project": PROJECTS,
+    "thread": THREADS,
+    "thread-url": THREADS,
+    "thread-url-or-id": THREADS,
+    "threads": THREADS,
+    "tool": TOOLS,
+    "tool-name": TOOLS,
+    **dict.fromkeys(
+        (
+            "artifact-url",
+            "arn",
+            "attachment-url",
+            "audience",
+            "author",
+            "branch",
+            "command",
+            "count",
+            "days",
+            "description",
+            "domain",
+            "email",
+            "hours",
+            "json",
+            "kv",
+            "label",
+            "labels",
+            "location",
+            "machine",
+            "mapping",
+            "message",
+            "minutes",
+            "n",
+            "names",
+            "namespace",
+            "newName",
+            "number",
+            "page",
+            "port",
+            "portal-url",
+            "priority",
+            "provider/model",
+            "query",
+            "region",
+            "resource-name",
+            "scope",
+            "scopes",
+            "seconds",
+            "secret",
+            "terms",
+            "text",
+            "timestamp",
+            "title",
+            "token",
+            "uri",
+            "url",
+            "version",
+            "weeks",
+            "workspace",
+        ),
+        FREE_FORM,
+    ),
+}
+
+
+@dataclasses.dataclass(frozen=True)
+class Field:
+    command: tuple[str, ...]
+    option: Option | None = None
+    argument: Argument | None = None
+
+    @property
+    def key(self) -> tuple[str, ...]:
+        if self.option is not None:
+            return (*self.command, self.option.canonical)
+        assert self.argument is not None
+        return (*self.command, f"<{self.argument.name}>")
+
+    @property
+    def placeholder(self) -> str:
+        value = self.option.value if self.option is not None else self.argument
+        assert value is not None
+        return value.name
+
+
+@dataclasses.dataclass(frozen=True)
+class Resolution:
+    completions: dict[tuple[str, ...], Completion]
+    diagnostics: tuple[str, ...]
+
+    def flags(self, path: tuple[str, ...], command: Command) -> list[tuple[str, Completion]]:
+        return [
+            (option.name, completion)
+            for option in command.options
+            if (completion := self.completions.get((*path, option.canonical)))
+            and not isinstance(completion, Exempt)
+        ]
+
+    def positionals(
+        self, path: tuple[str, ...], command: Command
+    ) -> list[tuple[Argument, Completion | None]]:
+        return [
+            (argument, self.completions.get((*path, f"<{argument.name}>")))
+            for argument in command.arguments
+        ]
+
+
+def fields(command: Command, parents: tuple[str, ...] = ()) -> Iterator[Field]:
+    path = (*parents, command.name)
+    for option in command.options:
+        if option.value is not None:
+            yield Field(path, option=option)
+    for argument in command.arguments:
+        yield Field(path, argument=argument)
+    for child in command.commands:
+        yield from fields(child, path)
+
+
+def resolve(root: Command) -> Resolution:
+    completions: dict[tuple[str, ...], Completion] = {}
+    diagnostics = []
+    used_flag_defaults = set()
+    used_placeholder_defaults = set()
+
+    for field in fields(root):
+        completion = EXACT.get(field.key)
+        if completion is None and field.option is not None:
+            completion = FLAG_DEFAULTS.get(field.option.name)
+            if completion is not None:
+                used_flag_defaults.add(field.option.name)
+        if completion is None:
+            completion = PLACEHOLDER_DEFAULTS.get(field.placeholder)
+            if completion is not None:
+                used_placeholder_defaults.add(field.placeholder)
+        if completion is None and field.option is not None and field.option.name.endswith("-file"):
+            completion = FILES
+        if completion is None:
+            diagnostics.append(f"no completion rule: {' '.join(field.key)}")
+            continue
+        completions[field.key] = completion
+
+    live_keys = {field.key for field in fields(root)}
+    diagnostics.extend(
+        f"rule targets no value-taking field: {' '.join(key)}"
+        for key in sorted(set(EXACT) - live_keys)
+    )
+    diagnostics.extend(
+        f"unused flag default: --{name}" for name in sorted(set(FLAG_DEFAULTS) - used_flag_defaults)
+    )
+    diagnostics.extend(
+        f"unused placeholder default: <{name}>"
+        for name in sorted(set(PLACEHOLDER_DEFAULTS) - used_placeholder_defaults)
+    )
+    return Resolution(completions, tuple(diagnostics))

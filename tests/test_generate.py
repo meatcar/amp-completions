@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from amp_completions import generate, help_model
+from amp_completions import completions, generate, help_model
 
 
 ROOT = Path(__file__).parents[1]
@@ -16,218 +16,89 @@ HELPER_MACRO = re.compile(
 )
 
 
+def helper(resource: str) -> str:
+    return f'$sh("${{XDG_CONFIG_HOME:-$HOME/.config}}/carapace/bin/amp-completions" {resource})'
+
+
+def tree(*commands: tuple[str, list[str], list[str]]) -> help_model.Command:
+    """Build amp with commands given as (path, option declarations, usage operands)."""
+    root = help_model.Command("amp")
+    for path, options, operands in commands:
+        command = root
+        for name in path.split():
+            child = next((child for child in command.commands if child.name == name), None)
+            if child is None:
+                child = help_model.Command(name)
+                command.commands.append(child)
+            command = child
+        command.options = [help_model.parse_option(option) for option in options]
+        command.arguments = help_model.parse_arguments(
+            f"Usage: amp {path} [options] {' '.join(operands)}\n"
+        )
+    return root
+
+
 class RenderTest(unittest.TestCase):
     def test_renders_aliases_flags_and_known_values(self) -> None:
         command = help_model.Command(
             "amp",
             "Amp CLI",
             options=[help_model.parse_option("-m, --mode <value>", "Set the `mode`")],
-            commands=[help_model.Command("version", "Print the version")],
+            commands=[help_model.Command("version", "Print the version", aliases=["v"])],
         )
 
         rendered = generate.render(command, "1.2.3")
 
         self.assertIn('"-m, --mode=": "Set the \'mode\'"', rendered)
         self.assertIn('"mode": ["low", "medium", "high", "ultra"]', rendered)
-        self.assertIn('- name: "version"', rendered)
+        self.assertIn('- name: "version"\n    aliases: ["v"]', rendered)
 
-    def test_renders_dynamic_thread_and_project_completions(self) -> None:
-        command = help_model.Command(
-            "amp",
-            commands=[
-                help_model.Command(
-                    "orb",
-                    commands=[
-                        help_model.Command(
-                            "portal",
-                            options=[help_model.parse_option("--thread <value>", "Thread")],
-                        )
-                    ],
-                ),
-                help_model.Command(
-                    "mcp",
-                    options=[help_model.parse_option("--project <value>", "Project")],
-                ),
-                help_model.Command(
-                    "threads",
-                    commands=[help_model.Command("continue")],
-                ),
-                help_model.Command(
-                    "projects",
-                    commands=[help_model.Command("get")],
-                ),
-            ],
+    def test_same_flag_name_resolves_by_command_then_placeholder(self) -> None:
+        root = tree(
+            ("plugins add", ["--target <target>"], []),
+            ("skill add", ["--target <dir>"], []),
+            ("projects create", ["--prompt-file <path>"], []),
         )
 
-        rendered = generate.render(command, "1.2.3")
+        rendered = generate.render(root, "1.2.3")
 
-        thread_completion = (
-            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
-            'amp-completions" threads)'
-        )
-        project_completion = (
-            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
-            'amp-completions" projects)'
-        )
-        self.assertIn(f'"thread": {json.dumps([thread_completion])}', rendered)
-        self.assertIn(f'"project": {json.dumps([project_completion])}', rendered)
-        self.assertIn(
-            'name: "continue"\n        completion:\n'
-            f"          positionalany: {json.dumps([thread_completion])}",
-            rendered,
-        )
-        self.assertIn(
-            'name: "get"\n        completion:\n          positional:\n'
-            f"            - {json.dumps([project_completion])}",
-            rendered,
-        )
-
-    def test_renders_static_and_filesystem_flag_completions(self) -> None:
-        command = help_model.Command(
-            "amp",
-            options=[
-                help_model.parse_option("--log-level <value>", "Log level"),
-                help_model.parse_option("--settings-file <value>", "Settings file"),
-            ],
-            commands=[
-                help_model.Command(
-                    "projects",
-                    commands=[
-                        help_model.Command(
-                            "create",
-                            options=[
-                                help_model.parse_option("--orb-size <value>", "Orb size"),
-                                help_model.parse_option("--ship-behavior <value>", "Ship behavior"),
-                                help_model.parse_option("--custom-ship-prompt-file <value>", "Prompt file"),
-                            ],
-                        )
-                    ],
-                ),
-                help_model.Command(
-                    "plugins",
-                    commands=[
-                        help_model.Command(
-                            "add",
-                            options=[help_model.parse_option("--target <value>", "Target")],
-                        )
-                    ],
-                ),
-            ],
-        )
-
-        rendered = generate.render(command, "1.2.3")
-
-        self.assertIn('"log-level": ["debug", "info", "warn", "error", "audit"]', rendered)
-        self.assertIn('"settings-file": ["$files"]', rendered)
-        self.assertIn(
-            '"orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]',
-            rendered,
-        )
-        self.assertIn('"ship-behavior": ["ship", "push-to-branch", "custom"]', rendered)
-        self.assertIn('"custom-ship-prompt-file": ["$files"]', rendered)
         self.assertIn('"target": ["system", "workspace"]', rendered)
+        self.assertIn('"target": ["$directories"]', rendered)
+        self.assertIn('"prompt-file": ["$files"]', rendered)
 
-    def test_renders_dynamic_resource_and_positional_filesystem_completions(self) -> None:
-        command = help_model.Command(
-            "amp",
-            commands=[
-                help_model.Command(
-                    "tools",
-                    commands=[help_model.Command("show")],
-                ),
-                help_model.Command(
-                    "skill",
-                    commands=[help_model.Command("info")],
-                ),
-                help_model.Command(
-                    "mcp",
-                    commands=[help_model.Command("remove")],
-                ),
-                help_model.Command(
-                    "apps",
-                    commands=[
-                        help_model.Command(
-                            "deploy",
-                            options=[help_model.parse_option("--domain <value>", "Domain")],
-                        )
-                    ],
-                ),
-                help_model.Command(
-                    "threads",
-                    commands=[
-                        help_model.Command("color"),
-                        help_model.Command("visibility"),
-                    ],
-                ),
-                help_model.Command(
-                    "permissions",
-                    commands=[
-                        help_model.Command("add"),
-                        help_model.Command("test"),
-                    ],
-                ),
-                help_model.Command(
-                    "config",
-                    commands=[
-                        help_model.Command(
-                            "model-providers",
-                            commands=[help_model.Command("setup-guide")],
-                        )
-                    ],
-                ),
-            ],
+    def test_new_commands_inherit_placeholder_completions(self) -> None:
+        root = tree(("future inspect", ["--project <project>"], ["<tool>", "[threads...]"]))
+
+        rendered = generate.render(root, "1.2.3")
+
+        self.assertIn(f'"project": {json.dumps([helper("projects")])}', rendered)
+        self.assertIn(
+            "completion:\n"
+            "          flag:\n"
+            f'            "project": {json.dumps([helper("projects")])}\n'
+            "          positional:\n"
+            f"            - {json.dumps([helper('tools')])}\n"
+            f"          positionalany: {json.dumps([helper('threads')])}",
+            rendered,
         )
 
-        rendered = generate.render(command, "1.2.3")
+    def test_renders_gaps_before_and_trims_after_completed_positionals(self) -> None:
+        root = tree(
+            ("clone", [], ["<repository>", "[target-dir]"]),
+            ("threads rename", [], ["<thread>", "<newName>"]),
+        )
 
-        for resource in ("tools", "skills", "local-mcp-servers"):
-            completion = (
-                '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
-                f'amp-completions" {resource})'
-            )
-            self.assertIn(json.dumps([completion]), rendered)
-        domain_completion = (
-            '$sh("${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/'
-            'amp-completions" domains)'
+        rendered = generate.render(root, "1.2.3")
+
+        self.assertIn('positional:\n        - []\n        - ["$directories"]', rendered)
+        self.assertTrue(
+            rendered.endswith(f"positional:\n            - {json.dumps([helper('threads')])}\n")
         )
-        self.assertIn(f'"domain": {json.dumps([domain_completion])}', rendered)
-        self.assertIn(
-            'name: "deploy"\n'
-            '        flags:\n'
-            '          "--domain=": "Domain"\n'
-            '        completion:\n'
-            f'          flag:\n            "domain": {json.dumps([domain_completion])}\n'
-            '          positional:\n'
-            '            - []\n'
-            '            - ["$directories"]',
-            rendered,
-        )
-        self.assertIn(
-            'name: "visibility"\n        completion:\n'
-            '          positional:\n'
-            '            - ["private", "workspace", "group"]',
-            rendered,
-        )
-        self.assertIn(
-            'name: "add"\n        completion:\n'
-            '          positional:\n'
-            '            - ["allow", "reject", "ask", "delegate"]\n'
-            '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" tools)"]',
-            rendered,
-        )
-        self.assertIn(
-            'name: "setup-guide"\n            completion:\n'
-            '              positional:\n'
-            '                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "amazon-bedrock", "opencode-go", "custom-url"]',
-            rendered,
-        )
-        self.assertIn(
-            'name: "color"\n        completion:\n'
-            '          positional:\n'
-            '            - ["$sh(\\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\\" threads)"]\n'
-            '            - ["blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan"]',
-            rendered,
-        )
+
+    def test_renders_delimited_literals_as_unique_lists(self) -> None:
+        rendered = generate.render(tree(("threads new", ["--features <value>"], [])), "1.2.3")
+
+        self.assertIn('"pro\\tGPT-5.6 Pro mode", "$uniquelist(,)"]', rendered)
 
 
 def unknown_macros(spec: str) -> list[str]:
@@ -241,10 +112,10 @@ def unknown_macros(spec: str) -> list[str]:
         value
         for value in values
         if value.startswith("$")
-        and value not in {"$files", "$directories"}
+        and value not in {"$files", "$directories", "$uniquelist(,)"}
         and not (
             (match := HELPER_MACRO.fullmatch(value))
-            and match["resource"] in generate.DYNAMIC_COMPLETION_RESOURCES
+            and match["resource"] in {resource.name for resource in completions.RESOURCES}
         )
     ]
 

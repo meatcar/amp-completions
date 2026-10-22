@@ -1,139 +1,10 @@
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from .help_model import Command, inspect_amp
-
-
-FLAG_COMPLETIONS = {
-    "api-format": ["chat-completions", "responses", "anthropic-messages"],
-    "auth": ["oauth", "bearer", "none"],
-    "context": ["thread", "subagent"],
-    "features": ["fast\tFaster serving", "pro\tGPT-5.6 Pro mode"],
-    "log-level": ["debug", "info", "warn", "error", "audit"],
-    "mode": ["low", "medium", "high", "ultra"],
-    "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"],
-    "reasoning-effort": ["none", "minimal", "low", "medium", "high", "xhigh", "max"],
-    "ship-behavior": ["ship", "push-to-branch", "custom"],
-    "subject-scope": ["project", "thread", "user", "workspace"],
-    "visibility": ["private", "unlisted", "workspace", "group"],
-}
-PATH_FLAG_COMPLETIONS = {
-    ("amp", "plugins", "add", "target"): ["system", "workspace"],
-    ("amp", "plugins", "remove", "target"): ["system", "workspace"],
-    ("amp", "projects", "snapshots", "delete", "resource"): [
-        "a1.tiny",
-        "a1.small",
-        "a1.medium",
-        "a1.large",
-        "a1.xxlarge",
-    ],
-    ("amp", "skill", "add", "target"): ["$directories"],
-    ("amp", "skill", "remove", "target"): ["$directories"],
-}
-PATH_DYNAMIC_FLAG_COMPLETIONS = {
-    ("amp", "apps", "deploy", "domain"): "domains",
-    (
-        "amp",
-        "config",
-        "model-providers",
-        "check-access",
-        "provider-key",
-    ): "model-providers",
-}
-FILE_COMPLETION_FLAGS = {
-    "icon",
-    "log-file",
-    "mcp-config",
-    "output",
-    "settings-file",
-}
-DIRECTORY_COMPLETION_FLAGS = {"cwd", "repository"}
-DYNAMIC_FLAG_COMPLETIONS = {
-    "project": "projects",
-    "thread": "threads",
-    "thread-id": "threads",
-}
-DYNAMIC_COMPLETION_RESOURCES = {
-    "domains",
-    "local-mcp-servers",
-    "model-providers",
-    "projects",
-    "remote-mcp-servers",
-    "skills",
-    "threads",
-    "tools",
-}
-POSITIONAL_COMPLETIONS = {
-    ("amp", "orb", "system-metrics"): "threads",
-    ("amp", "projects", "delete"): "projects",
-    ("amp", "projects", "gallery-media", "get"): "projects",
-    ("amp", "projects", "gallery-media", "set"): "projects",
-    ("amp", "projects", "get"): "projects",
-    ("amp", "projects", "snapshots", "delete"): "projects",
-    ("amp", "projects", "snapshots", "list"): "projects",
-    ("amp", "projects", "update"): "projects",
-    ("amp", "threads", "archive"): "threads",
-    ("amp", "threads", "delete"): "threads",
-    ("amp", "threads", "export"): "threads",
-    ("amp", "threads", "label"): "threads",
-    ("amp", "threads", "markdown"): "threads",
-    ("amp", "threads", "raw"): "threads",
-    ("amp", "threads", "rename"): "threads",
-    ("amp", "threads", "share"): "threads",
-    ("amp", "threads", "share", "multiplayer", "off"): "threads",
-    ("amp", "threads", "share", "multiplayer", "on"): "threads",
-    ("amp", "threads", "share", "multiplayer", "ttl"): "threads",
-    ("amp", "threads", "usage"): "threads",
-    ("amp", "tools", "show"): "tools",
-    ("amp", "skill", "info"): "skills",
-    ("amp", "skill", "remove"): "skills",
-    ("amp", "mcp", "remove"): "local-mcp-servers",
-    ("amp", "mcp", "remote", "check"): "remote-mcp-servers",
-    ("amp", "mcp", "remote", "login"): "remote-mcp-servers",
-    ("amp", "mcp", "remote", "logout"): "remote-mcp-servers",
-    ("amp", "mcp", "remote", "remove"): "remote-mcp-servers",
-    ("amp", "mcp", "remote", "tools"): "remote-mcp-servers",
-    ("amp", "mcp", "remote", "update"): "remote-mcp-servers",
-    ("amp", "config", "model-providers", "activate"): "model-providers",
-    ("amp", "config", "model-providers", "deactivate"): "model-providers",
-    ("amp", "config", "model-providers", "delete"): "model-providers",
-    ("amp", "config", "model-providers", "edit-key"): "model-providers",
-    ("amp", "config", "model-providers", "show"): "model-providers",
-    ("amp", "config", "model-providers", "test"): "model-providers",
-    ("amp", "domains", "check"): "domains",
-    ("amp", "domains", "remove"): "domains",
-}
-POSITIONAL_SEQUENCE_COMPLETIONS = {
-    ("amp", "apps", "deploy"): [[], ["$directories"]],
-    ("amp", "clone"): [[], ["$directories"]],
-    ("amp", "config", "model-providers", "setup-guide"): [
-        [
-            "ollama-cloud",
-            "openrouter",
-            "vercel",
-            "cloudflare",
-            "google-cloud-agent-platform",
-            "amazon-bedrock",
-            "opencode-go",
-            "custom-url",
-        ]
-    ],
-    ("amp", "permissions", "add"): [
-        ["allow", "reject", "ask", "delegate"],
-        ["tools"],
-    ],
-    ("amp", "permissions", "test"): [["tools"]],
-    ("amp", "skill", "add"): [["$files", "$directories"]],
-    ("amp", "threads", "color"): [
-        ["threads"],
-        ["blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan"],
-    ],
-    ("amp", "threads", "visibility"): [["private", "workspace", "group"]],
-}
-POSITIONAL_ANY_COMPLETIONS = {
-    ("amp", "threads", "continue"): "threads",
-}
+from .completions import Completion, Literals, Paths, Resolution, Resource, resolve
+from .help_model import Argument, Command, inspect_amp
 
 
 def emit_mapping(lines: list[str], indent: int, name: str, values: list[tuple[str, str]]) -> None:
@@ -150,8 +21,39 @@ def dynamic_completion(resource: str) -> str:
     return f"$sh({helper} {resource})"
 
 
+def completion_values(completion: Completion | None) -> list[str]:
+    match completion:
+        case Literals(values, delimiter):
+            return [*values, *([f"$uniquelist({delimiter})"] if delimiter else [])]
+        case Resource(name):
+            return [dynamic_completion(name)]
+        case Paths(macro):
+            return [macro]
+        case _:
+            return []
+
+
+def positional_values(
+    positionals: list[tuple[Argument, Completion | None]],
+) -> tuple[list[list[str]], list[str]]:
+    fixed = [
+        completion_values(completion)
+        for argument, completion in positionals
+        if not argument.variadic
+    ]
+    variadic = [
+        completion_values(completion)
+        for argument, completion in positionals
+        if argument.variadic
+    ]
+    while fixed and not fixed[-1]:
+        fixed.pop()
+    return fixed, variadic[0] if variadic else []
+
+
 def emit_command(
     command: Command,
+    resolution: Resolution,
     indent: int,
     sequence: bool = False,
     parents: tuple[str, ...] = (),
@@ -176,53 +78,21 @@ def emit_command(
         [(option.spec_key, option.description) for option in command.options],
     )
 
-    completions = []
-    for option in command.options:
-        name = option.name
-        path_completion = PATH_FLAG_COMPLETIONS.get((*path, name))
-        path_dynamic_completion = PATH_DYNAMIC_FLAG_COMPLETIONS.get((*path, name))
-        if path_completion:
-            completions.append((name, path_completion))
-        elif path_dynamic_completion:
-            completions.append((name, [dynamic_completion(path_dynamic_completion)]))
-        elif name in FLAG_COMPLETIONS:
-            completions.append((name, FLAG_COMPLETIONS[name]))
-        elif name in DYNAMIC_FLAG_COMPLETIONS:
-            resource = DYNAMIC_FLAG_COMPLETIONS[name]
-            completions.append((name, [dynamic_completion(resource)]))
-        elif name.endswith("-file") or name in FILE_COMPLETION_FLAGS:
-            completions.append((name, ["$files"]))
-        elif name in DIRECTORY_COMPLETION_FLAGS:
-            completions.append((name, ["$directories"]))
-    positional = POSITIONAL_COMPLETIONS.get(path)
-    positional_sequence = POSITIONAL_SEQUENCE_COMPLETIONS.get(path)
-    positional_any = POSITIONAL_ANY_COMPLETIONS.get(path)
-    if completions or positional or positional_sequence or positional_any:
+    flags = resolution.flags(path, command)
+    positional, positional_any = positional_values(resolution.positionals(path, command))
+    if flags or positional or positional_any:
         lines.append(f"{property_prefix}completion:")
-        if completions:
+        if flags:
             lines.append(f"{property_prefix}  flag:")
-            for name, values in completions:
+            for name, completion in flags:
+                values = completion_values(completion)
                 lines.append(f"{property_prefix}    {json.dumps(name)}: {json.dumps(values)}")
         if positional:
             lines.append(f"{property_prefix}  positional:")
-            lines.append(
-                f"{property_prefix}    - {json.dumps([dynamic_completion(positional)])}"
-            )
-        if positional_sequence:
-            lines.append(f"{property_prefix}  positional:")
-            for values in positional_sequence:
-                resolved = [
-                    dynamic_completion(value)
-                    if value in DYNAMIC_COMPLETION_RESOURCES
-                    else value
-                    for value in values
-                ]
-                lines.append(f"{property_prefix}    - {json.dumps(resolved)}")
+            for values in positional:
+                lines.append(f"{property_prefix}    - {json.dumps(values)}")
         if positional_any:
-            lines.append(
-                f"{property_prefix}  positionalany: "
-                f"{json.dumps([dynamic_completion(positional_any)])}"
-            )
+            lines.append(f"{property_prefix}  positionalany: {json.dumps(positional_any)}")
 
     if command.commands:
         lines.append(f"{property_prefix}commands:")
@@ -230,6 +100,7 @@ def emit_command(
             lines.extend(
                 emit_command(
                     child,
+                    resolution,
                     property_indent + 2,
                     sequence=True,
                     parents=path,
@@ -239,13 +110,14 @@ def emit_command(
     return lines
 
 
-def render(root: Command, version: str) -> str:
+def render(root: Command, version: str, resolution: Resolution | None = None) -> str:
+    resolution = resolution or resolve(root)
     header = [
         "# Generated by generate.py. Do not edit by hand.",
         f"# Amp version: {version}",
         "# yaml-language-server: $schema=https://carapace.sh/schemas/command.json",
     ]
-    return "\n".join([*header, *emit_command(root, 0), ""])
+    return "\n".join([*header, *emit_command(root, resolution, 0), ""])
 
 
 def build_manifest(root: Command, version: str) -> dict[str, object]:
@@ -295,7 +167,10 @@ def main() -> None:
     arguments = parser.parse_args()
 
     root, version = inspect_amp(arguments.amp)
-    arguments.output.write_text(render(root, version))
+    resolution = resolve(root)
+    for diagnostic in resolution.diagnostics:
+        print(f"warning: {diagnostic}", file=sys.stderr)
+    arguments.output.write_text(render(root, version, resolution))
     arguments.manifest_output.write_text(render_manifest(root, version))
 
 

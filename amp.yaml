@@ -55,9 +55,11 @@ completion:
     "log-file": ["$files"]
     "mcp-config": ["$files"]
     "mode": ["low", "medium", "high", "ultra"]
-    "features": ["fast\tFaster serving", "pro\tGPT-5.6 Pro mode"]
+    "features": ["fast\tFaster serving", "plaid\tUltrafast serving", "pro\tGPT-5.6 Pro mode", "$uniquelist(,)"]
+    "executor": ["local", "orb"]
+    "attach": ["$files"]
     "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
-    "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]
+    "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge"]
 commands:
   - name: "version"
     description: "Print the version number and exit"
@@ -87,6 +89,9 @@ commands:
           "--token=": "Orb provider token (aop_live_\u2026); defaults to AMP_ORB_PROVIDER_TOKEN, then the token amp orb provider create saved"
           "--allow-multiple": "Run beside other orb providers for this token; only when your backend shares state across them"
           "--amp-url=": "Amp server URL"
+        completion:
+          positional:
+            - ["$files"]
         commands:
           - name: "create"
             description: "Create a self-hosted orb provider and save its token with your Amp credentials, where amp orb provider reads it"
@@ -116,6 +121,7 @@ commands:
         completion:
           flag:
             "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
+            "hostname": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" domains)"]
         commands:
           - name: "access"
             description: "Set portal access"
@@ -280,10 +286,14 @@ commands:
             description: "Start serving one or more directories; they are served again after the runner restarts"
             flags:
               "--runner-id=": "The runner to change; required when several are running"
+            completion:
+              positionalany: ["$directories"]
           - name: "remove"
             description: "Stop serving one or more directories added with `amp runner dirs add`"
             flags:
               "--runner-id=": "The runner to change; required when several are running"
+            completion:
+              positionalany: ["$directories"]
           - name: "list"
             description: "List the directories a running runner serves"
             flags:
@@ -374,6 +384,9 @@ commands:
       - name: "context"
         aliases: ["analyze-context"]
         description: "Analyze the current context for a thread"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "search"
         aliases: ["find"]
         description: "Search threads"
@@ -444,6 +457,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--codex-dir=": "Codex sessions directory (defaults to $CODEX_HOME/sessions or ~/.codex/sessions)"
+            completion:
+              flag:
+                "codex-dir": ["$directories"]
           - name: "claude"
             aliases: ["claude-code"]
             description: "Import Claude Code sessions from this machine"
@@ -457,6 +473,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--claude-dir=": "Claude Code config directory (defaults to $CLAUDE_CONFIG_DIR or ~/.claude)"
+            completion:
+              flag:
+                "claude-dir": ["$directories"]
           - name: "cursor"
             description: "Import Cursor chats from this machine"
             flags:
@@ -495,6 +514,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--opencode-dir=": "OpenCode data directory (defaults to $XDG_DATA_HOME/opencode or ~/.local/share/opencode)"
+            completion:
+              flag:
+                "opencode-dir": ["$directories"]
           - name: "pi"
             description: "Import Pi sessions from this machine"
             flags:
@@ -625,6 +647,9 @@ commands:
         description: "Execute a plugin with a given event"
         flags:
           "--data=": "JSON event data"
+        completion:
+          positional:
+            - ["$files"]
       - name: "show-docs"
         description: "Output the plugin API documentation understood by this version of Amp"
   - name: "skill"
@@ -642,7 +667,7 @@ commands:
           flag:
             "target": ["$directories"]
           positional:
-            - ["$files", "$directories"]
+            - ["$files"]
       - name: "list"
         aliases: ["ls"]
         description: "List all available skills"
@@ -707,6 +732,7 @@ commands:
           "-w, --workspace": "Add to workspace permissions instead of global"
         completion:
           flag:
+            "to": ["$files"]
             "context": ["thread", "subagent"]
           positional:
             - ["allow", "reject", "ask", "delegate"]
@@ -767,7 +793,7 @@ commands:
               "--current-project": "Use the current directory's Amp project"
             completion:
               flag:
-                "auth": ["oauth", "bearer", "none"]
+                "auth": ["oauth", "bearer", "none", "workload-identity"]
                 "bearer-token-file": ["$files"]
                 "oauth-client-secret-file": ["$files"]
                 "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
@@ -791,7 +817,7 @@ commands:
               "--current-project": "Use the current directory's Amp project"
             completion:
               flag:
-                "auth": ["oauth", "bearer", "none"]
+                "auth": ["oauth", "bearer", "none", "workload-identity"]
                 "bearer-token-file": ["$files"]
                 "oauth-client-secret-file": ["$files"]
                 "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
@@ -881,18 +907,33 @@ commands:
               "--auth-url=": "OAuth authorization URL (discovered if not provided)"
               "--token-url=": "OAuth token URL (discovered if not provided)"
               "-h, --help": "display help for command"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" local-mcp-servers)"]
           - name: "logout"
             description: "Remove OAuth credentials for an MCP server"
             flags:
               "-h, --help": "display help for command"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" local-mcp-servers)"]
           - name: "status"
             description: "Show OAuth status for an MCP server"
             flags:
               "-h, --help": "display help for command"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" local-mcp-servers)"]
       - name: "doctor"
         description: "Check MCP server status"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" local-mcp-servers)"]
       - name: "approve"
         description: "Approve a workspace MCP server"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" local-mcp-servers)"]
   - name: "config"
     description: "Manage Amp configuration"
     commands:
@@ -928,6 +969,9 @@ commands:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" model-providers)"]
           - name: "set-priority"
             description: "Change where a connection sits in the model routing precedence order"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" model-providers)"]
           - name: "show"
             description: "Show complete non-secret model provider connection data as JSON"
             flags:
@@ -988,7 +1032,9 @@ commands:
             completion:
               flag:
                 "api-key-file": ["$files"]
-                "api-format": ["chat-completions", "responses", "anthropic-messages"]
+                "api-format": ["chat-completions", "responses", "anthropic-messages", "google-genai"]
+              positional:
+                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "google-ai-studio", "amazon-bedrock", "opencode-go", "custom-url"]
           - name: "edit-router"
             description: "Edit an AI model router"
             flags:
@@ -1016,7 +1062,9 @@ commands:
             completion:
               flag:
                 "api-key-file": ["$files"]
-                "api-format": ["chat-completions", "responses", "anthropic-messages"]
+                "api-format": ["chat-completions", "responses", "anthropic-messages", "google-genai"]
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" model-providers)"]
           - name: "add-key"
             description: "Add an Anthropic or OpenAI API key, or a connection that authenticates with workload identity federation instead"
             flags:
@@ -1039,9 +1087,6 @@ commands:
             flags:
               "--personal": "show the exact identity values for connections on your personal account"
               "--workspace": "show the exact identity values for connections on your current workspace"
-            completion:
-              positional:
-                - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "amazon-bedrock", "opencode-go", "custom-url"]
           - name: "edit-key"
             description: "Edit a model provider API key: its name, model mapping, or, for anthropic and openai, its credential"
             flags:
@@ -1135,7 +1180,7 @@ commands:
           "--json": "Print JSON output"
         completion:
           flag:
-            "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]
+            "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge"]
             "ship-behavior": ["ship", "push-to-branch", "custom"]
             "custom-ship-prompt-file": ["$files"]
             "desktop-resume-script-file": ["$files"]
@@ -1168,11 +1213,12 @@ commands:
           "--json": "Print JSON output"
         completion:
           flag:
-            "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]
+            "orb-size": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge"]
             "ship-behavior": ["ship", "push-to-branch", "custom"]
             "custom-ship-prompt-file": ["$files"]
             "desktop-resume-script-file": ["$files"]
             "icon": ["$files"]
+            "repository-mode": ["github", "mapped"]
             "pre-clone-script-file": ["$files"]
             "pre-setup-script-file": ["$files"]
           positional:
@@ -1211,7 +1257,7 @@ commands:
               "--json": "Print JSON output"
             completion:
               flag:
-                "resource": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge"]
+                "resource": ["a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge"]
               positional:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "gallery-media"
@@ -1234,27 +1280,45 @@ commands:
             description: "Show whether the widget is on, its script tag, and its allowed origins"
             flags:
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "enable"
             description: "Turn the widget on and print its script tag"
             flags:
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "disable"
             description: "Turn the widget off; installed script tags stop working"
             flags:
               "-y, --yes": "Confirm turning the widget off"
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "remove-origin"
             description: "Stop allowing websites to show the widget"
             flags:
               "--json": "Print JSON output"
+            completion:
+              positional:
+                - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "archive"
         description: "Archive a project: its threads stay readable but are archived and cannot be continued, and it is hidden from project pickers until unarchived"
         flags:
           "--json": "Print JSON output"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "unarchive"
         description: "Unarchive a project so threads can be started in it again; its threads stay archived"
         flags:
           "--json": "Print JSON output"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
       - name: "delete"
         aliases: ["rm"]
         description: "Delete a project by ID, [@]namespace/name, or repository"
@@ -1475,3 +1539,6 @@ commands:
       "-h, --help": "display help for command"
   - name: "completions"
     description: "Print a shell completion script"
+    completion:
+      positional:
+        - ["bash", "zsh", "fish", "pwsh"]
