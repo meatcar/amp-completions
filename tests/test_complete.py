@@ -1,10 +1,10 @@
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest import mock
 from pathlib import Path
 
 from amp_completions import complete
@@ -19,15 +19,30 @@ class CompleteCliTest(unittest.TestCase):
         self.addCleanup(directory.cleanup)
         self.directory = Path(directory.name)
 
-    def environment(self, response: object, amp_exit_code: int = 0) -> dict[str, str]:
+    @property
+    def calls(self) -> list[str]:
+        log = self.directory / "calls"
+        return log.read_text().splitlines() if log.exists() else []
+
+    def environment(
+        self,
+        response: object,
+        amp_exit_code: int = 0,
+        *,
+        responses: dict[str, object] | None = None,
+        context: dict[str, str] | None = None,
+    ) -> dict[str, str]:
         amp = self.directory / "amp"
         amp.write_text(
             f"#!{sys.executable}\n"
             "import json\n"
             "import sys\n"
+            f"with open({str(self.directory / 'calls')!r}, 'a') as log:\n"
+            "    log.write(' '.join(sys.argv[1:]) + '\\n')\n"
             f"if {amp_exit_code}:\n"
             f"    sys.exit({amp_exit_code})\n"
-            f"response = json.loads({json.dumps(response)!r})\n"
+            f"responses = json.loads({json.dumps(responses or {})!r})\n"
+            f"response = responses.get(' '.join(sys.argv[1:]), json.loads({json.dumps(response)!r}))\n"
             "if sys.argv[1] == 'threads' and 'list' in sys.argv:\n"
             "    limit = int(sys.argv[sys.argv.index('--limit') + 1])\n"
             "    offset = int(sys.argv[sys.argv.index('--offset') + 1])\n"
@@ -35,11 +50,15 @@ class CompleteCliTest(unittest.TestCase):
             "print(json.dumps(response))\n"
         )
         amp.chmod(0o755)
-        environment = os.environ.copy()
+        environment = {
+            name: value for name, value in os.environ.items() if not name.startswith("C_")
+        }
         environment.update(
             {
                 "AMP_BIN": str(amp),
                 "PYTHONPATH": str(ROOT / "src"),
+                "XDG_CACHE_HOME": str(self.directory / "cache"),
+                **(context or {}),
             }
         )
         return environment
@@ -47,13 +66,14 @@ class CompleteCliTest(unittest.TestCase):
     def run_complete(
         self,
         resource: str,
-        response: object,
+        response: object = None,
         amp_exit_code: int = 0,
+        **options: dict[str, object] | dict[str, str],
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, "-m", "amp_completions.complete", resource],
             capture_output=True,
-            env=self.environment(response, amp_exit_code),
+            env=self.environment(response, amp_exit_code, **options),
             text=True,
         )
 
@@ -167,6 +187,7 @@ class CompleteCliTest(unittest.TestCase):
 
         for resource, (response, expected) in cases.items():
             with self.subTest(resource=resource):
+                shutil.rmtree(self.directory / "cache", ignore_errors=True)
                 result = self.run_complete(resource, response)
                 self.assertEqual(result.returncode, 0)
                 self.assertEqual(result.stdout, expected)
@@ -205,8 +226,97 @@ class CompleteCliTest(unittest.TestCase):
         process.stdout.readline()
         process.stdout.close()
 
-        self.assertEqual(process.stderr.read(), "")
+        with process.stderr:
+            self.assertEqual(process.stderr.read(), "")
         self.assertEqual(process.wait(), 0)
+
+    def test_warm_cache_skips_amp(self) -> None:
+        tools = [{"name": "shell_command", "description": "Run a command"}]
+
+        first = self.run_complete("tools", tools)
+        second = self.run_complete("tools", [{"name": "changed"}])
+
+        self.assertEqual(second.stdout, first.stdout)
+        self.assertEqual(self.calls, ["tools list --json"])
+        cache = self.directory / "cache" / "amp-completions"
+        self.assertEqual(cache.stat().st_mode & 0o777, 0o700)
+        self.assertTrue(all(entry.stat().st_mode & 0o077 == 0 for entry in cache.iterdir()))
+
+    def test_context_flags_scope_queries_and_cache_entries(self) -> None:
+        tools = [{"name": "shell_command"}]
+
+        self.run_complete("tools", tools)
+        scoped = self.run_complete(
+            "tools", [{"name": "oracle"}], context={"C_FLAG_MODE": "ultra"}
+        )
+
+        self.assertEqual(scoped.stdout, "oracle\n")
+        self.assertEqual(self.calls, ["tools list --json", "tools list --mode ultra --json"])
+
+    def test_expired_cache_survives_failed_refresh(self) -> None:
+        self.run_complete("projects", [{"namespace": "meatcar", "name": "amp"}])
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            os.utime(entry, (0, 0))
+
+        result = self.run_complete("projects", [], amp_exit_code=1)
+
+        self.assertEqual(result.stdout, "meatcar/amp\n")
+        self.assertEqual(len(self.calls), 2)
+
+    def test_domain_scope_flag_selects_one_account(self) -> None:
+        result = self.run_complete(
+            "domains",
+            responses={
+                "domains list --user --json": [{"hostname": "me.example.com"}],
+                "domains list --workspace --json": [{"hostname": "team.example.com"}],
+            },
+            context={"C_FLAG_WORKSPACE": "true"},
+        )
+
+        self.assertEqual(result.stdout, "team.example.com\n")
+        self.assertEqual(self.calls, ["domains list --workspace --json"])
+
+    def test_unscoped_domains_query_both_accounts(self) -> None:
+        result = self.run_complete(
+            "domains",
+            responses={
+                "domains list --user --json": [{"hostname": "me.example.com"}],
+                "domains list --workspace --json": [{"hostname": "team.example.com"}],
+            },
+        )
+
+        self.assertEqual(result.stdout, "me.example.com\nteam.example.com\n")
+
+    def test_scoped_remote_mcp_servers_use_that_scope(self) -> None:
+        result = self.run_complete(
+            "remote-mcp-servers",
+            responses={
+                "mcp remote list --project acme/app --json": {
+                    "action": "list-servers",
+                    "servers": [
+                        {"id": "MCP-1", "name": "github", "url": "https://api.github.com/mcp"},
+                        {"id": "MCP-2", "name": "Linear MCP", "url": "https://mcp.linear.app"},
+                    ],
+                }
+            },
+            context={"C_FLAG_PROJECT": "acme/app"},
+        )
+
+        self.assertEqual(
+            result.stdout,
+            "github\thttps://api.github.com/mcp\nMCP-2\tLinear MCP\n",
+        )
+
+    def test_workspace_model_providers_use_workspace_keys(self) -> None:
+        result = self.run_complete(
+            "model-providers",
+            responses={
+                "config model-providers list --workspace --json": [{"id": "MP-9", "type": "openai"}]
+            },
+            context={"C_FLAG_WORKSPACE": "true"},
+        )
+
+        self.assertEqual(result.stdout, "MP-9\topenai\n")
 
     def test_hides_amp_errors_from_the_shell(self) -> None:
         result = self.run_complete("threads", [], amp_exit_code=1)
@@ -223,11 +333,8 @@ class QueryTimeoutTest(unittest.TestCase):
             amp.write_text("#!/bin/sh\nexec sleep 10\n")
             amp.chmod(0o755)
 
-            with (
-                mock.patch.object(complete, "QUERY_TIMEOUT_SECONDS", 0.1),
-                self.assertRaises(subprocess.TimeoutExpired),
-            ):
-                complete.run_json(str(amp), ["tools", "list", "--json"])
+            with self.assertRaises(subprocess.TimeoutExpired):
+                complete.run_json(str(amp), ["tools", "list", "--json"], timeout=0.1)
 
 
 if __name__ == "__main__":
