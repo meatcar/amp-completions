@@ -120,7 +120,23 @@ def render(root: Command, version: str, resolution: Resolution | None = None) ->
     return "\n".join([*header, *emit_command(root, resolution, 0), ""])
 
 
-def build_manifest(root: Command, version: str) -> dict[str, object]:
+def manifest_completion(completion: Completion) -> dict[str, object]:
+    if isinstance(completion, Literals):
+        entry: dict[str, object] = {
+            "literals": [value.split("\t", 1)[0] for value in completion.values]
+        }
+        if completion.delimiter is not None:
+            entry["delimiter"] = completion.delimiter
+        return entry
+    if isinstance(completion, Resource):
+        return {"resource": completion.name}
+    if isinstance(completion, Paths):
+        return {"paths": completion.macro}
+    return {"exempt": completion.reason}
+
+
+def build_manifest(root: Command, version: str, resolution: Resolution) -> dict[str, object]:
+    argument_signatures = {}
     command_paths = []
     command_aliases = {}
     flag_paths = []
@@ -132,6 +148,10 @@ def build_manifest(root: Command, version: str) -> dict[str, object]:
         command_paths.append(command_path)
         if command.aliases:
             command_aliases[command_path] = sorted(command.aliases)
+        if command.arguments:
+            argument_signatures[command_path] = " ".join(
+                argument.signature for argument in command.arguments
+            )
         for option in command.options:
             flag_path = f"{command_path} {option.canonical}"
             flag_paths.append(flag_path)
@@ -143,16 +163,23 @@ def build_manifest(root: Command, version: str) -> dict[str, object]:
     visit(root, ())
     return {
         "amp_version": version,
-        "command_aliases": dict(sorted(command_aliases.items())),
+        "argument_signatures": argument_signatures,
+        "command_aliases": command_aliases,
         "command_paths": sorted(command_paths),
+        "completion_diagnostics": sorted(resolution.diagnostics),
+        "field_completions": {
+            " ".join(key): manifest_completion(completion)
+            for key, completion in resolution.completions.items()
+        },
         "flag_paths": sorted(flag_paths),
-        "manifest_version": 1,
+        "manifest_version": 2,
         "persistent_flag_paths": sorted(persistent_flag_paths),
     }
 
 
-def render_manifest(root: Command, version: str) -> str:
-    return json.dumps(build_manifest(root, version), indent=2, sort_keys=True) + "\n"
+def render_manifest(root: Command, version: str, resolution: Resolution) -> str:
+    manifest = build_manifest(root, version, resolution)
+    return json.dumps(manifest, indent=2, sort_keys=True) + "\n"
 
 
 def main() -> None:
@@ -171,7 +198,7 @@ def main() -> None:
     for diagnostic in resolution.diagnostics:
         print(f"warning: {diagnostic}", file=sys.stderr)
     arguments.output.write_text(render(root, version, resolution))
-    arguments.manifest_output.write_text(render_manifest(root, version))
+    arguments.manifest_output.write_text(render_manifest(root, version, resolution))
 
 
 if __name__ == "__main__":

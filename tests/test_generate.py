@@ -1,3 +1,5 @@
+import contextlib
+import io
 import json
 import re
 import tempfile
@@ -165,21 +167,57 @@ class ManifestTest(unittest.TestCase):
             ],
         )
 
-        manifest = generate.build_manifest(root, "1.2.3")
+        root.commands[0].arguments = [
+            help_model.Argument("thread"),
+            help_model.Argument("labels", required=False, variadic=True),
+        ]
+        resolution = completions.Resolution(
+            {
+                ("amp", "--mode"): completions.Literals(("smart\tDefault", "rush")),
+                ("amp", "threads", "--limit"): completions.Exempt("free-form number"),
+                ("amp", "threads", "<thread>"): completions.Resource("threads"),
+                ("amp", "threads", "<labels>"): completions.Literals(("a", "b"), ","),
+                ("amp", "threads", "list", "<file>"): completions.Paths("$files"),
+            },
+            ("unused placeholder default: <x>", "no completion rule: amp --y"),
+        )
+
+        manifest = generate.build_manifest(root, "1.2.3", resolution)
 
         self.assertEqual(
             manifest,
             {
                 "amp_version": "1.2.3",
+                "argument_signatures": {"amp threads": "<thread> [labels...]"},
                 "command_aliases": {
                     "amp threads": ["t"],
                     "amp threads list": ["ls"],
                 },
                 "command_paths": ["amp", "amp threads", "amp threads list"],
+                "completion_diagnostics": [
+                    "no completion rule: amp --y",
+                    "unused placeholder default: <x>",
+                ],
+                "field_completions": {
+                    "amp --mode": {"literals": ["smart", "rush"]},
+                    "amp threads --limit": {"exempt": "free-form number"},
+                    "amp threads <labels>": {"delimiter": ",", "literals": ["a", "b"]},
+                    "amp threads <thread>": {"resource": "threads"},
+                    "amp threads list <file>": {"paths": "$files"},
+                },
                 "flag_paths": ["amp --mode", "amp threads --limit"],
-                "manifest_version": 1,
+                "manifest_version": 2,
                 "persistent_flag_paths": ["amp --mode"],
             },
+        )
+
+    def test_checked_in_manifest_has_no_completion_diagnostics(self) -> None:
+        manifest = json.loads((ROOT / "amp-manifest.json").read_text())
+
+        self.assertEqual(
+            manifest["completion_diagnostics"],
+            [],
+            "completion rules drifted from Amp's help; update completions.py",
         )
 
     def test_main_writes_spec_and_manifest_from_one_inspection(self) -> None:
@@ -199,12 +237,17 @@ class ManifestTest(unittest.TestCase):
                         str(manifest_output),
                     ],
                 ),
+                contextlib.redirect_stderr(io.StringIO()) as stderr,
             ):
                 generate.main()
 
             inspect.assert_called_once_with("amp")
             self.assertIn("# Amp version: 1.2.3", output.read_text())
-            self.assertEqual(json.loads(manifest_output.read_text())["amp_version"], "1.2.3")
+            manifest = json.loads(manifest_output.read_text())
+            self.assertEqual(manifest["amp_version"], "1.2.3")
+            warnings = [line.removeprefix("warning: ") for line in stderr.getvalue().splitlines()]
+            self.assertEqual(sorted(warnings), manifest["completion_diagnostics"])
+            self.assertIn("unused flag default: --mode", warnings)
 
 
 if __name__ == "__main__":

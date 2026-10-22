@@ -1,5 +1,134 @@
 {
   "amp_version": "0.0.1794772833-g217332",
+  "argument_signatures": {
+    "amp account switch": "<account>",
+    "amp boxes cancel-deploy": "<namespace/name> <deployment>",
+    "amp boxes cp": "<source> <destination>",
+    "amp boxes create": "<namespace/name>",
+    "amp boxes delete": "<namespace/name>",
+    "amp boxes deploy": "[target]",
+    "amp boxes deployments": "<namespace/name>",
+    "amp boxes exec": "<namespace/name> <command...>",
+    "amp boxes rename": "<namespace/name> <new-name>",
+    "amp boxes rotate-credential": "<namespace/name>",
+    "amp boxes schedule": "<namespace/name>",
+    "amp boxes show": "<namespace/name>",
+    "amp boxes start": "<namespace/name>",
+    "amp boxes stop": "<namespace/name>",
+    "amp boxes undeploy": "<namespace/name> <deployment>",
+    "amp clone": "<repository> [target-dir]",
+    "amp completions": "<shell>",
+    "amp config model-providers activate": "<connection-id>",
+    "amp config model-providers add-key": "<provider>",
+    "amp config model-providers add-router": "<router>",
+    "amp config model-providers deactivate": "<connection-id>",
+    "amp config model-providers delete": "<id>",
+    "amp config model-providers edit-key": "<connection-id>",
+    "amp config model-providers edit-router": "<connection-id>",
+    "amp config model-providers set-priority": "<connection-id> <priority>",
+    "amp config model-providers setup-guide": "<provider>",
+    "amp config model-providers show": "<id>",
+    "amp config model-providers test": "<id>",
+    "amp config vocabulary add": "<terms...>",
+    "amp config vocabulary set": "[terms...]",
+    "amp domains add": "<hostname>",
+    "amp domains check": "<hostname>",
+    "amp domains remove": "<hostname>",
+    "amp files delete": "<url>",
+    "amp files get": "<attachment-url>",
+    "amp logout": "[account]",
+    "amp mcp add": "<name> [args...]",
+    "amp mcp approve": "<name>",
+    "amp mcp doctor": "[name]",
+    "amp mcp oauth login": "<server-name>",
+    "amp mcp oauth logout": "<server-name>",
+    "amp mcp oauth status": "<server-name>",
+    "amp mcp remote add": "<name> <url>",
+    "amp mcp remote check": "<server>",
+    "amp mcp remote login": "<server>",
+    "amp mcp remote logout": "<server>",
+    "amp mcp remote remove": "<server>",
+    "amp mcp remote tools": "<server>",
+    "amp mcp remote update": "<server>",
+    "amp mcp remove": "<name>",
+    "amp net route": "[exit-node]",
+    "amp net run": "<command...>",
+    "amp oauth-clients edit": "<id>",
+    "amp orb portal": "[target]",
+    "amp orb portal access": "[value]",
+    "amp orb provider": "<script>",
+    "amp orb provider create": "<name>",
+    "amp orb provider set-default": "<name>",
+    "amp orb service logs": "<name>",
+    "amp orb service restart": "<name>",
+    "amp orb service start": "<name>",
+    "amp orb service status": "<name>",
+    "amp orb service stop": "<name>",
+    "amp orb system-metrics": "<thread>",
+    "amp permissions add": "<action> <tool>",
+    "amp permissions test": "<tool-name>",
+    "amp plugins add": "<url>",
+    "amp plugins exec": "<plugin> <event>",
+    "amp plugins import": "<url>",
+    "amp plugins remove": "<plugin>",
+    "amp plugins update": "[plugin]",
+    "amp portal login-url": "<portal-url>",
+    "amp profile create": "<name>",
+    "amp profile delete": "<name>",
+    "amp profile rename": "<name> <new-name>",
+    "amp profile use": "<name>",
+    "amp projects archive": "<project>",
+    "amp projects create": "[repository]",
+    "amp projects delete": "<project>",
+    "amp projects feedback-widget disable": "<project>",
+    "amp projects feedback-widget enable": "<project>",
+    "amp projects feedback-widget get": "<project>",
+    "amp projects feedback-widget remove-origin": "<project> <origins...>",
+    "amp projects gallery-media get": "<project>",
+    "amp projects gallery-media set": "<project> <json>",
+    "amp projects get": "<project>",
+    "amp projects snapshots delete": "<project>",
+    "amp projects snapshots list": "<project>",
+    "amp projects unarchive": "<project>",
+    "amp projects update": "<project>",
+    "amp report-bug": "[description...]",
+    "amp runner desktop allow": "<permission>",
+    "amp runner dirs add": "<paths...>",
+    "amp runner dirs remove": "<paths...>",
+    "amp secrets delete": "<name>",
+    "amp secrets get": "<name>",
+    "amp secrets history": "[name]",
+    "amp secrets set": "<name>",
+    "amp skill add": "<source>",
+    "amp skill info": "<name>",
+    "amp skill remove": "<name>",
+    "amp spaces create": "<name>",
+    "amp svc": "<service> <tool>",
+    "amp threads archive": "<thread>",
+    "amp threads color": "<thread> <color>",
+    "amp threads context": "<thread>",
+    "amp threads continue": "[threads...]",
+    "amp threads delete": "<thread>",
+    "amp threads export": "<thread>",
+    "amp threads import claude": "[sessionIds...]",
+    "amp threads import codex": "[threadIds...]",
+    "amp threads import conductor": "[chatIds...]",
+    "amp threads import cursor": "[chatIds...]",
+    "amp threads import devin": "[sessionIds...]",
+    "amp threads import opencode": "[sessionIds...]",
+    "amp threads import pi": "[sessionIds...]",
+    "amp threads label": "<thread> <labels...>",
+    "amp threads markdown": "<thread>",
+    "amp threads raw": "<thread>",
+    "amp threads rename": "<thread> <newName>",
+    "amp threads search": "<query>",
+    "amp threads share": "<thread>",
+    "amp threads share multiplayer off": "<thread>",
+    "amp threads share multiplayer on": "<thread>",
+    "amp threads share multiplayer ttl": "<thread>",
+    "amp threads usage": "<thread>",
+    "amp tools show": "<tool>"
+  },
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -330,6 +459,1347 @@
     "amp usage",
     "amp version"
   ],
+  "completion_diagnostics": [
+    "invalid literal completion: 'a model as provider/name': amp --mode",
+    "no completion rule: amp --effort",
+    "no completion rule: amp --model",
+    "no completion rule: amp --orb-provider",
+    "no completion rule: amp --profile",
+    "no completion rule: amp --space",
+    "no completion rule: amp boxes cancel-deploy <deployment>",
+    "no completion rule: amp boxes cancel-deploy <namespace/name>",
+    "no completion rule: amp boxes cp <destination>",
+    "no completion rule: amp boxes cp <source>",
+    "no completion rule: amp boxes create --size",
+    "no completion rule: amp boxes create <namespace/name>",
+    "no completion rule: amp boxes delete <namespace/name>",
+    "no completion rule: amp boxes deploy --branch",
+    "no completion rule: amp boxes deploy --domain",
+    "no completion rule: amp boxes deploy --on",
+    "no completion rule: amp boxes deploy --root",
+    "no completion rule: amp boxes deploy --size",
+    "no completion rule: amp boxes deploy <target>",
+    "no completion rule: amp boxes deployments <namespace/name>",
+    "no completion rule: amp boxes exec <namespace/name>",
+    "no completion rule: amp boxes rename <namespace/name>",
+    "no completion rule: amp boxes rename <new-name>",
+    "no completion rule: amp boxes rotate-credential <namespace/name>",
+    "no completion rule: amp boxes schedule --off",
+    "no completion rule: amp boxes schedule --on",
+    "no completion rule: amp boxes schedule --tz",
+    "no completion rule: amp boxes schedule <namespace/name>",
+    "no completion rule: amp boxes show <namespace/name>",
+    "no completion rule: amp boxes start <namespace/name>",
+    "no completion rule: amp boxes stop <namespace/name>",
+    "no completion rule: amp boxes undeploy <deployment>",
+    "no completion rule: amp boxes undeploy <namespace/name>",
+    "no completion rule: amp config model-providers add-key --anthropic-federation-rule-id",
+    "no completion rule: amp config model-providers add-key --anthropic-organization-id",
+    "no completion rule: amp config model-providers add-key --anthropic-service-account-id",
+    "no completion rule: amp config model-providers add-key --anthropic-workspace-id",
+    "no completion rule: amp config model-providers add-key --openai-identity-provider-id",
+    "no completion rule: amp config model-providers add-key --openai-service-account-id",
+    "no completion rule: amp config model-providers add-key <provider>",
+    "no completion rule: amp config model-providers add-router --entra-application",
+    "no completion rule: amp config model-providers add-router --foundry-resource",
+    "no completion rule: amp config model-providers add-router --openrouter-federation-policy-id",
+    "no completion rule: amp config model-providers edit-key --anthropic-federation-rule-id",
+    "no completion rule: amp config model-providers edit-key --anthropic-organization-id",
+    "no completion rule: amp config model-providers edit-key --anthropic-service-account-id",
+    "no completion rule: amp config model-providers edit-key --anthropic-workspace-id",
+    "no completion rule: amp config model-providers edit-key --openai-identity-provider-id",
+    "no completion rule: amp config model-providers edit-key --openai-service-account-id",
+    "no completion rule: amp config model-providers edit-router --entra-application",
+    "no completion rule: amp config model-providers edit-router --foundry-resource",
+    "no completion rule: amp config model-providers edit-router --openrouter-federation-policy-id",
+    "no completion rule: amp config model-providers setup-guide <provider>",
+    "no completion rule: amp orb provider create <name>",
+    "no completion rule: amp orb provider set-default <name>",
+    "no completion rule: amp profile create <name>",
+    "no completion rule: amp profile delete <name>",
+    "no completion rule: amp profile rename <name>",
+    "no completion rule: amp profile rename <new-name>",
+    "no completion rule: amp profile use <name>",
+    "no completion rule: amp projects feedback-widget remove-origin <origins>",
+    "no completion rule: amp projects update --orb-provider",
+    "no completion rule: amp projects update --orb-type",
+    "no completion rule: amp spaces create --goal",
+    "no completion rule: amp spaces create --shared-with",
+    "no completion rule: amp spaces create <name>",
+    "no completion rule: amp threads import conductor --conductor-db",
+    "no completion rule: amp threads import conductor <chatIds>",
+    "no completion rule: amp threads import cursor --cursor-data-dir",
+    "no completion rule: amp threads import cursor --cursor-dir",
+    "no completion rule: amp threads import cursor <chatIds>",
+    "no completion rule: amp threads import devin --devin-dir",
+    "no completion rule: amp threads import devin <sessionIds>",
+    "no completion rule: amp threads import pi --pi-dir",
+    "no completion rule: amp threads import pi <sessionIds>",
+    "rule targets no value-taking field: amp config model-providers setup-guide <router>",
+    "rule targets no value-taking field: amp threads visibility <visibility>",
+    "unused placeholder default: <artifact-url>"
+  ],
+  "field_completions": {
+    "amp --attach": {
+      "paths": "$files"
+    },
+    "amp --execute": {
+      "exempt": "free-form value"
+    },
+    "amp --executor": {
+      "literals": [
+        "local",
+        "orb"
+      ]
+    },
+    "amp --features": {
+      "delimiter": ",",
+      "literals": [
+        "fast",
+        "plaid",
+        "pro"
+      ]
+    },
+    "amp --label": {
+      "exempt": "free-form value"
+    },
+    "amp --log-file": {
+      "paths": "$files"
+    },
+    "amp --log-level": {
+      "literals": [
+        "debug",
+        "info",
+        "warn",
+        "error",
+        "audit"
+      ]
+    },
+    "amp --mcp-config": {
+      "paths": "$files"
+    },
+    "amp --orb-size": {
+      "literals": [
+        "a1.tiny",
+        "a1.small",
+        "a1.medium",
+        "a1.large",
+        "a1.xxlarge",
+        "a1.3xlarge"
+      ]
+    },
+    "amp --plugin-ready-timeout": {
+      "exempt": "free-form value"
+    },
+    "amp --project": {
+      "resource": "projects"
+    },
+    "amp --runner-dir": {
+      "exempt": "directory on a remote runner"
+    },
+    "amp --settings-file": {
+      "paths": "$files"
+    },
+    "amp --title": {
+      "exempt": "free-form value"
+    },
+    "amp --visibility": {
+      "literals": [
+        "private",
+        "unlisted",
+        "workspace",
+        "group"
+      ]
+    },
+    "amp account switch <account>": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp boxes cp --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp boxes deploy --name": {
+      "exempt": "new name"
+    },
+    "amp boxes deploy --port": {
+      "exempt": "free-form value"
+    },
+    "amp boxes deploy --repo": {
+      "exempt": "free-form value"
+    },
+    "amp boxes exec --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp boxes exec --timeout": {
+      "exempt": "free-form value"
+    },
+    "amp boxes exec <command>": {
+      "exempt": "free-form value"
+    },
+    "amp clone <repository>": {
+      "exempt": "repository reference"
+    },
+    "amp clone <target-dir>": {
+      "paths": "$directories"
+    },
+    "amp completions <shell>": {
+      "literals": [
+        "bash",
+        "zsh",
+        "fish",
+        "pwsh"
+      ]
+    },
+    "amp config model-providers activate <connection-id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers add-key --api-key-file": {
+      "paths": "$files"
+    },
+    "amp config model-providers add-key --model-mapping": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-key --name": {
+      "exempt": "new name"
+    },
+    "amp config model-providers add-router --api-format": {
+      "literals": [
+        "chat-completions",
+        "responses",
+        "anthropic-messages",
+        "google-genai"
+      ]
+    },
+    "amp config model-providers add-router --api-key-file": {
+      "paths": "$files"
+    },
+    "amp config model-providers add-router --aws-region": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --base-url": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --cloudflare-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-router --cloudflare-gateway-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-router --google-cloud-location": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --google-cloud-project": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-router --headers": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --iam-role-arn": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --model-mapping": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --name": {
+      "exempt": "new name"
+    },
+    "amp config model-providers add-router --query-params": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --router-options": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --secret-headers": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router --workload-identity-provider": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers add-router <router>": {
+      "literals": [
+        "ollama-cloud",
+        "openrouter",
+        "vercel",
+        "cloudflare",
+        "ngrok",
+        "google-cloud-agent-platform",
+        "google-ai-studio",
+        "amazon-bedrock",
+        "azure-ai-foundry",
+        "opencode-go",
+        "deepseek",
+        "zai",
+        "alibaba",
+        "kimi",
+        "fireworks",
+        "baseten",
+        "nvidia",
+        "custom-url"
+      ]
+    },
+    "amp config model-providers check-access --prompt": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers check-access --provider-key": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers check-access --provider-model": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers check-access --reasoning-effort": {
+      "literals": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
+    },
+    "amp config model-providers check-access --thread": {
+      "resource": "threads"
+    },
+    "amp config model-providers deactivate <connection-id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers delete <id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers edit-key --api-key-file": {
+      "paths": "$files"
+    },
+    "amp config model-providers edit-key --model-mapping": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-key --name": {
+      "exempt": "new name"
+    },
+    "amp config model-providers edit-key <connection-id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers edit-router --api-format": {
+      "literals": [
+        "chat-completions",
+        "responses",
+        "anthropic-messages",
+        "google-genai"
+      ]
+    },
+    "amp config model-providers edit-router --api-key-file": {
+      "paths": "$files"
+    },
+    "amp config model-providers edit-router --aws-region": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --base-url": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --cloudflare-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-router --cloudflare-gateway-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-router --google-cloud-location": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --google-cloud-project": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-router --headers": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --iam-role-arn": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --model-mapping": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --name": {
+      "exempt": "new name"
+    },
+    "amp config model-providers edit-router --query-params": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --router-options": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --secret-headers": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router --workload-identity-provider": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers edit-router <connection-id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers set-priority <connection-id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers set-priority <priority>": {
+      "exempt": "free-form value"
+    },
+    "amp config model-providers show <id>": {
+      "resource": "model-providers"
+    },
+    "amp config model-providers test <id>": {
+      "resource": "model-providers"
+    },
+    "amp config vocabulary add <terms>": {
+      "exempt": "free-form value"
+    },
+    "amp config vocabulary set <terms>": {
+      "exempt": "free-form value"
+    },
+    "amp domains add <hostname>": {
+      "exempt": "new hostname"
+    },
+    "amp domains check <hostname>": {
+      "resource": "domains"
+    },
+    "amp domains remove <hostname>": {
+      "resource": "domains"
+    },
+    "amp files delete <url>": {
+      "exempt": "free-form value"
+    },
+    "amp files get --output": {
+      "paths": "$files"
+    },
+    "amp files get <attachment-url>": {
+      "exempt": "free-form value"
+    },
+    "amp logout <account>": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp mcp add --env": {
+      "exempt": "free-form value"
+    },
+    "amp mcp add --header": {
+      "exempt": "free-form value"
+    },
+    "amp mcp add <args>": {
+      "exempt": "server command arguments"
+    },
+    "amp mcp add <name>": {
+      "exempt": "new name"
+    },
+    "amp mcp approve <name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp mcp doctor <name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp mcp oauth login --auth-url": {
+      "exempt": "free-form value"
+    },
+    "amp mcp oauth login --client-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp mcp oauth login --client-secret": {
+      "exempt": "free-form value"
+    },
+    "amp mcp oauth login --scopes": {
+      "exempt": "free-form value"
+    },
+    "amp mcp oauth login --server-url": {
+      "exempt": "free-form value"
+    },
+    "amp mcp oauth login --token-url": {
+      "exempt": "free-form value"
+    },
+    "amp mcp oauth login <server-name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp mcp oauth logout <server-name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp mcp oauth status <server-name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp mcp remote --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote add --auth": {
+      "literals": [
+        "oauth",
+        "bearer",
+        "none",
+        "workload-identity"
+      ]
+    },
+    "amp mcp remote add --bearer-token-file": {
+      "paths": "$files"
+    },
+    "amp mcp remote add --headers": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote add --oauth-client-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp mcp remote add --oauth-client-secret-file": {
+      "paths": "$files"
+    },
+    "amp mcp remote add --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote add --secret-headers": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote add --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote add <name>": {
+      "exempt": "new name"
+    },
+    "amp mcp remote add <url>": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote check --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote check --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote check <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remote list --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote list --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote login --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote login --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote login <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remote logout --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote logout --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote logout <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remote remove --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote remove --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote remove <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remote tools --page": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote tools --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote tools --query": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote tools --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote tools <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remote update --auth": {
+      "literals": [
+        "oauth",
+        "bearer",
+        "none",
+        "workload-identity"
+      ]
+    },
+    "amp mcp remote update --bearer-token-file": {
+      "paths": "$files"
+    },
+    "amp mcp remote update --headers": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote update --name": {
+      "exempt": "new name"
+    },
+    "amp mcp remote update --oauth-client-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp mcp remote update --oauth-client-secret-file": {
+      "paths": "$files"
+    },
+    "amp mcp remote update --project": {
+      "resource": "projects"
+    },
+    "amp mcp remote update --secret-headers": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote update --url": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote update --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp mcp remote update <server>": {
+      "resource": "remote-mcp-servers"
+    },
+    "amp mcp remove <name>": {
+      "resource": "local-mcp-servers"
+    },
+    "amp net exit-node --id": {
+      "exempt": "new exit node ID"
+    },
+    "amp net exit-node --portal-domain": {
+      "exempt": "free-form value"
+    },
+    "amp net exit-node --thread": {
+      "resource": "threads"
+    },
+    "amp net ping --count": {
+      "exempt": "free-form value"
+    },
+    "amp net route --wait": {
+      "exempt": "free-form value"
+    },
+    "amp net route <exit-node>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp net run <command>": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients create --description": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients create --name": {
+      "exempt": "new name"
+    },
+    "amp oauth-clients create --redirect-uri": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients create --scope": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients create --type": {
+      "exempt": "client types not documented"
+    },
+    "amp oauth-clients create --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients edit --description": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients edit --name": {
+      "exempt": "new name"
+    },
+    "amp oauth-clients edit --redirect-uri": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients edit --scope": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients edit --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp oauth-clients edit <id>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp oauth-clients list --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp orb id-token --audience": {
+      "exempt": "free-form value"
+    },
+    "amp orb id-token --subject-scope": {
+      "literals": [
+        "project",
+        "thread",
+        "user",
+        "workspace"
+      ]
+    },
+    "amp orb id-token --ttl-seconds": {
+      "exempt": "free-form value"
+    },
+    "amp orb portal --description": {
+      "exempt": "free-form value"
+    },
+    "amp orb portal --domain": {
+      "exempt": "free-form value"
+    },
+    "amp orb portal --hostname": {
+      "resource": "domains"
+    },
+    "amp orb portal --name": {
+      "exempt": "new name"
+    },
+    "amp orb portal --thread": {
+      "resource": "threads"
+    },
+    "amp orb portal --title": {
+      "exempt": "free-form value"
+    },
+    "amp orb portal <target>": {
+      "exempt": "port or loopback URL"
+    },
+    "amp orb portal access <value>": {
+      "exempt": "access values not documented"
+    },
+    "amp orb portal list --thread": {
+      "resource": "threads"
+    },
+    "amp orb provider --amp-url": {
+      "exempt": "free-form value"
+    },
+    "amp orb provider --token": {
+      "exempt": "free-form value"
+    },
+    "amp orb provider <script>": {
+      "paths": "$files"
+    },
+    "amp orb provider create --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp orb provider set-default --workspace": {
+      "exempt": "free-form value"
+    },
+    "amp orb redact-output --thread": {
+      "resource": "threads"
+    },
+    "amp orb restart-processes --thread": {
+      "resource": "threads"
+    },
+    "amp orb service logs --lines": {
+      "exempt": "free-form value"
+    },
+    "amp orb service logs <name>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb service restart <name>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb service start --command": {
+      "exempt": "free-form value"
+    },
+    "amp orb service start --cwd": {
+      "paths": "$directories"
+    },
+    "amp orb service start --description": {
+      "exempt": "free-form value"
+    },
+    "amp orb service start --port": {
+      "exempt": "free-form value"
+    },
+    "amp orb service start --title": {
+      "exempt": "free-form value"
+    },
+    "amp orb service start <name>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb service status <name>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb service stop <name>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb simulator serve --device": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb simulator serve --port": {
+      "exempt": "free-form value"
+    },
+    "amp orb simulator serve --runtime": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp orb system-metrics <thread>": {
+      "resource": "threads"
+    },
+    "amp permissions add --context": {
+      "literals": [
+        "thread",
+        "subagent"
+      ]
+    },
+    "amp permissions add --to": {
+      "paths": "$files"
+    },
+    "amp permissions add <action>": {
+      "literals": [
+        "allow",
+        "reject",
+        "ask",
+        "delegate"
+      ]
+    },
+    "amp permissions add <tool>": {
+      "resource": "tools"
+    },
+    "amp permissions test --context": {
+      "literals": [
+        "thread",
+        "subagent"
+      ]
+    },
+    "amp permissions test --thread-id": {
+      "resource": "threads"
+    },
+    "amp permissions test <tool-name>": {
+      "resource": "tools"
+    },
+    "amp plugins add --target": {
+      "literals": [
+        "system",
+        "workspace"
+      ]
+    },
+    "amp plugins add <url>": {
+      "exempt": "free-form value"
+    },
+    "amp plugins exec --data": {
+      "exempt": "free-form value"
+    },
+    "amp plugins exec <event>": {
+      "exempt": "event names not documented"
+    },
+    "amp plugins exec <plugin>": {
+      "paths": "$files"
+    },
+    "amp plugins import --repository": {
+      "paths": "$directories"
+    },
+    "amp plugins import <url>": {
+      "exempt": "free-form value"
+    },
+    "amp plugins remove --target": {
+      "literals": [
+        "system",
+        "workspace"
+      ]
+    },
+    "amp plugins remove <plugin>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp plugins update <plugin>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp portal login-url <portal-url>": {
+      "exempt": "free-form value"
+    },
+    "amp profile none --thread": {
+      "resource": "threads"
+    },
+    "amp profile status --thread": {
+      "resource": "threads"
+    },
+    "amp profile use --thread": {
+      "resource": "threads"
+    },
+    "amp projects archive <project>": {
+      "resource": "projects"
+    },
+    "amp projects create --commit-author": {
+      "exempt": "free-form value"
+    },
+    "amp projects create --custom-ship-prompt-file": {
+      "paths": "$files"
+    },
+    "amp projects create --desktop-resume-script-file": {
+      "paths": "$files"
+    },
+    "amp projects create --icon": {
+      "paths": "$files"
+    },
+    "amp projects create --name": {
+      "exempt": "new name"
+    },
+    "amp projects create --orb-size": {
+      "literals": [
+        "a1.tiny",
+        "a1.small",
+        "a1.medium",
+        "a1.large",
+        "a1.xxlarge",
+        "a1.3xlarge"
+      ]
+    },
+    "amp projects create --remote": {
+      "exempt": "new Git remote name"
+    },
+    "amp projects create --ship-behavior": {
+      "literals": [
+        "ship",
+        "push-to-branch",
+        "custom"
+      ]
+    },
+    "amp projects create <repository>": {
+      "exempt": "repository reference"
+    },
+    "amp projects delete <project>": {
+      "resource": "projects"
+    },
+    "amp projects feedback-widget disable <project>": {
+      "resource": "projects"
+    },
+    "amp projects feedback-widget enable <project>": {
+      "resource": "projects"
+    },
+    "amp projects feedback-widget get <project>": {
+      "resource": "projects"
+    },
+    "amp projects feedback-widget remove-origin <project>": {
+      "resource": "projects"
+    },
+    "amp projects gallery-media get <project>": {
+      "resource": "projects"
+    },
+    "amp projects gallery-media set <json>": {
+      "exempt": "free-form value"
+    },
+    "amp projects gallery-media set <project>": {
+      "resource": "projects"
+    },
+    "amp projects get <project>": {
+      "resource": "projects"
+    },
+    "amp projects snapshots delete --resource": {
+      "literals": [
+        "a1.tiny",
+        "a1.small",
+        "a1.medium",
+        "a1.large",
+        "a1.xxlarge",
+        "a1.3xlarge"
+      ]
+    },
+    "amp projects snapshots delete <project>": {
+      "resource": "projects"
+    },
+    "amp projects snapshots list <project>": {
+      "resource": "projects"
+    },
+    "amp projects unarchive <project>": {
+      "resource": "projects"
+    },
+    "amp projects update --additional-repository": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --base-branch": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --commit-author": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --custom-ship-prompt-file": {
+      "paths": "$files"
+    },
+    "amp projects update --description": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --desktop-resume-script-file": {
+      "paths": "$files"
+    },
+    "amp projects update --icon": {
+      "paths": "$files"
+    },
+    "amp projects update --name": {
+      "exempt": "new name"
+    },
+    "amp projects update --orb-size": {
+      "literals": [
+        "a1.tiny",
+        "a1.small",
+        "a1.medium",
+        "a1.large",
+        "a1.xxlarge",
+        "a1.3xlarge"
+      ]
+    },
+    "amp projects update --pre-clone-script-file": {
+      "paths": "$files"
+    },
+    "amp projects update --pre-setup-script-file": {
+      "paths": "$files"
+    },
+    "amp projects update --remote-url": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --repository-mode": {
+      "literals": [
+        "github",
+        "mapped"
+      ]
+    },
+    "amp projects update --repository-url": {
+      "exempt": "free-form value"
+    },
+    "amp projects update --ship-behavior": {
+      "literals": [
+        "ship",
+        "push-to-branch",
+        "custom"
+      ]
+    },
+    "amp projects update <project>": {
+      "resource": "projects"
+    },
+    "amp report-bug <description>": {
+      "exempt": "free-form value"
+    },
+    "amp runner desktop allow <permission>": {
+      "exempt": "permission names not documented"
+    },
+    "amp runner dirs add --runner-id": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp runner dirs add <paths>": {
+      "paths": "$directories"
+    },
+    "amp runner dirs list --runner-id": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp runner dirs remove --runner-id": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp runner dirs remove <paths>": {
+      "paths": "$directories"
+    },
+    "amp secrets delete --box": {
+      "exempt": "free-form value"
+    },
+    "amp secrets delete --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp secrets delete --project": {
+      "resource": "projects"
+    },
+    "amp secrets delete <name>": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp secrets get --box": {
+      "exempt": "free-form value"
+    },
+    "amp secrets get --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp secrets get --project": {
+      "resource": "projects"
+    },
+    "amp secrets get <name>": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp secrets history --box": {
+      "exempt": "free-form value"
+    },
+    "amp secrets history --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp secrets history --project": {
+      "resource": "projects"
+    },
+    "amp secrets history <name>": {
+      "exempt": "JSON listing shape not observed in fixtures"
+    },
+    "amp secrets list --box": {
+      "exempt": "free-form value"
+    },
+    "amp secrets list --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp secrets list --project": {
+      "resource": "projects"
+    },
+    "amp secrets set --box": {
+      "exempt": "free-form value"
+    },
+    "amp secrets set --data-file": {
+      "paths": "$files"
+    },
+    "amp secrets set --deployment": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp secrets set --project": {
+      "resource": "projects"
+    },
+    "amp secrets set <name>": {
+      "exempt": "new name"
+    },
+    "amp skill add --name": {
+      "exempt": "new name"
+    },
+    "amp skill add --target": {
+      "paths": "$directories"
+    },
+    "amp skill add <source>": {
+      "paths": "$files"
+    },
+    "amp skill info <name>": {
+      "resource": "skills"
+    },
+    "amp skill remove --target": {
+      "paths": "$directories"
+    },
+    "amp skill remove <name>": {
+      "resource": "skills"
+    },
+    "amp spaces create --project": {
+      "resource": "projects"
+    },
+    "amp svc --input": {
+      "exempt": "free-form value"
+    },
+    "amp svc <service>": {
+      "exempt": "service list differs from MCP server listings"
+    },
+    "amp svc <tool>": {
+      "exempt": "service tools are not listed"
+    },
+    "amp svc gmail modify_labels --input": {
+      "exempt": "free-form value"
+    },
+    "amp svc gmail read_message --input": {
+      "exempt": "free-form value"
+    },
+    "amp svc gmail search_messages --input": {
+      "exempt": "free-form value"
+    },
+    "amp threads --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads --offset": {
+      "exempt": "free-form value"
+    },
+    "amp threads archive <thread>": {
+      "resource": "threads"
+    },
+    "amp threads color <color>": {
+      "literals": [
+        "blue",
+        "purple",
+        "pink",
+        "red",
+        "orange",
+        "yellow",
+        "green",
+        "cyan"
+      ]
+    },
+    "amp threads color <thread>": {
+      "resource": "threads"
+    },
+    "amp threads context <thread>": {
+      "resource": "threads"
+    },
+    "amp threads continue <threads>": {
+      "resource": "threads"
+    },
+    "amp threads delete <thread>": {
+      "resource": "threads"
+    },
+    "amp threads export <thread>": {
+      "resource": "threads"
+    },
+    "amp threads import claude --claude-dir": {
+      "paths": "$directories"
+    },
+    "amp threads import claude --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import claude --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import claude --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import claude <sessionIds>": {
+      "exempt": "external session IDs"
+    },
+    "amp threads import codex --codex-dir": {
+      "paths": "$directories"
+    },
+    "amp threads import codex --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import codex --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import codex --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import codex <threadIds>": {
+      "exempt": "external session IDs"
+    },
+    "amp threads import conductor --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import conductor --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import conductor --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import cursor --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import cursor --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import cursor --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import devin --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import devin --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import devin --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import opencode --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import opencode --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import opencode --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads import opencode --opencode-dir": {
+      "paths": "$directories"
+    },
+    "amp threads import opencode <sessionIds>": {
+      "exempt": "external session IDs"
+    },
+    "amp threads import pi --expect-user-email": {
+      "exempt": "free-form value"
+    },
+    "amp threads import pi --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads import pi --max-age": {
+      "exempt": "free-form value"
+    },
+    "amp threads label <labels>": {
+      "exempt": "free-form value"
+    },
+    "amp threads label <thread>": {
+      "resource": "threads"
+    },
+    "amp threads list --installation-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp threads list --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads list --offset": {
+      "exempt": "free-form value"
+    },
+    "amp threads markdown <thread>": {
+      "resource": "threads"
+    },
+    "amp threads new --visibility": {
+      "literals": [
+        "private",
+        "unlisted",
+        "workspace",
+        "group"
+      ]
+    },
+    "amp threads raw <thread>": {
+      "resource": "threads"
+    },
+    "amp threads rename <newName>": {
+      "exempt": "free-form value"
+    },
+    "amp threads rename <thread>": {
+      "resource": "threads"
+    },
+    "amp threads search --limit": {
+      "exempt": "free-form value"
+    },
+    "amp threads search <query>": {
+      "exempt": "free-form value"
+    },
+    "amp threads share --visibility": {
+      "literals": [
+        "private",
+        "unlisted",
+        "workspace",
+        "group"
+      ]
+    },
+    "amp threads share <thread>": {
+      "resource": "threads"
+    },
+    "amp threads share multiplayer off <thread>": {
+      "resource": "threads"
+    },
+    "amp threads share multiplayer on <thread>": {
+      "resource": "threads"
+    },
+    "amp threads share multiplayer ttl --days": {
+      "exempt": "free-form value"
+    },
+    "amp threads share multiplayer ttl --hours": {
+      "exempt": "free-form value"
+    },
+    "amp threads share multiplayer ttl --minutes": {
+      "exempt": "free-form value"
+    },
+    "amp threads share multiplayer ttl --weeks": {
+      "exempt": "free-form value"
+    },
+    "amp threads share multiplayer ttl <thread>": {
+      "resource": "threads"
+    },
+    "amp threads usage --end": {
+      "exempt": "free-form value"
+    },
+    "amp threads usage --start": {
+      "exempt": "free-form value"
+    },
+    "amp threads usage <thread>": {
+      "resource": "threads"
+    },
+    "amp tools list --mode": {
+      "literals": [
+        "low",
+        "medium",
+        "high",
+        "ultra"
+      ]
+    },
+    "amp tools show --mode": {
+      "literals": [
+        "low",
+        "medium",
+        "high",
+        "ultra"
+      ]
+    },
+    "amp tools show <tool>": {
+      "resource": "tools"
+    },
+    "amp update --target-version": {
+      "exempt": "free-form value"
+    },
+    "amp usage --end": {
+      "exempt": "free-form value"
+    },
+    "amp usage --start": {
+      "exempt": "free-form value"
+    }
+  },
   "flag_paths": [
     "amp --amp-env",
     "amp --attach",
@@ -864,7 +2334,7 @@
     "amp usage --start",
     "amp version --help"
   ],
-  "manifest_version": 1,
+  "manifest_version": 2,
   "persistent_flag_paths": [
     "amp --amp-env",
     "amp --attach",

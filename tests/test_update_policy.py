@@ -7,12 +7,21 @@ from unittest import mock
 from amp_completions import update_policy
 
 
+FIELD_COMPLETIONS = {
+    "amp --mode": {"literals": ["smart", "rush"]},
+    "amp threads --limit": {"exempt": "free-form number"},
+    "amp threads <thread>": {"resource": "threads"},
+}
+
 BASE_MANIFEST = {
     "amp_version": "1.2.3",
+    "argument_signatures": {"amp threads": "[thread]"},
     "command_aliases": {"amp threads": ["t"]},
     "command_paths": ["amp", "amp threads"],
+    "completion_diagnostics": [],
+    "field_completions": FIELD_COMPLETIONS,
     "flag_paths": ["amp --help", "amp threads --limit"],
-    "manifest_version": 1,
+    "manifest_version": 2,
     "persistent_flag_paths": ["amp --help"],
 }
 
@@ -20,6 +29,9 @@ BASE_MANIFEST = {
 def candidate(**changes: object) -> dict[str, object]:
     manifest = {
         "amp_version": "1.2.4",
+        "argument_signatures": {"amp threads": "[thread]"},
+        "completion_diagnostics": [],
+        "field_completions": FIELD_COMPLETIONS,
         "command_aliases": {"amp threads": ["t"]},
         "command_paths": ["amp", "amp threads", "amp threads list"],
         "flag_paths": [
@@ -27,7 +39,7 @@ def candidate(**changes: object) -> dict[str, object]:
             "amp threads --limit",
             "amp threads list --json",
         ],
-        "manifest_version": 1,
+        "manifest_version": 2,
         "persistent_flag_paths": ["amp --help"],
     }
     manifest.update(changes)
@@ -80,6 +92,69 @@ class UpdatePolicyTest(unittest.TestCase):
 
         self.assertEqual(result.classification, "compatibility-change")
         self.assertIn("removed persistent flag path: amp --help", result.reasons)
+
+    def test_blocks_candidate_with_completion_diagnostics(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(
+                completion_diagnostics=["rule targets no value-taking field: amp threads --color"]
+            ),
+        )
+
+        self.assertEqual(result.classification, "review-required")
+        self.assertIn(
+            "completion diagnostic: rule targets no value-taking field: amp threads --color",
+            result.reasons,
+        )
+
+    def test_accepts_added_completion_values(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(
+                field_completions={
+                    **FIELD_COMPLETIONS,
+                    "amp --mode": {"literals": ["smart", "rush", "deep"]},
+                    "amp threads --limit": {"literals": ["10"]},
+                }
+            ),
+        )
+
+        self.assertEqual(result.as_dict(), {"classification": "safe", "reasons": []})
+
+    def test_marks_lost_completion_values_as_compatibility_change(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(
+                field_completions={
+                    **FIELD_COMPLETIONS,
+                    "amp --mode": {"literals": ["smart"]},
+                    "amp threads <thread>": {"paths": "$files"},
+                }
+            ),
+        )
+
+        self.assertEqual(result.classification, "compatibility-change")
+        self.assertIn("removed completion value: amp --mode -> rush", result.reasons)
+        self.assertIn(
+            "changed completion: amp threads <thread> from resource to paths", result.reasons
+        )
+
+    def test_marks_changed_argument_signature_as_compatibility_change(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(argument_signatures={"amp threads": "<thread> [color]"}),
+        )
+
+        self.assertEqual(result.classification, "compatibility-change")
+        self.assertIn(
+            "changed arguments: amp threads from [thread] to <thread> [color]", result.reasons
+        )
+
+    def test_rejects_previous_manifest_version(self) -> None:
+        result = update_policy.classify_update(BASE_MANIFEST, candidate(manifest_version=1))
+
+        self.assertEqual(result.classification, "review-required")
+        self.assertIn("candidate manifest_version must be 2", result.reasons)
 
     def test_rejects_version_rollback(self) -> None:
         result = update_policy.classify_update(

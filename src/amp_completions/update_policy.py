@@ -11,13 +11,18 @@ MAX_GENERATED_DIFF_LINES = 2_000
 MANIFEST_FIELDS = frozenset(
     {
         "amp_version",
+        "argument_signatures",
         "command_aliases",
         "command_paths",
+        "completion_diagnostics",
+        "field_completions",
         "flag_paths",
         "manifest_version",
         "persistent_flag_paths",
     }
 )
+MANIFEST_VERSION = 2
+COMPLETION_KINDS = ("literals", "resource", "paths", "exempt")
 AMP_VERSION = re.compile(r"^(\d+)\.(\d+)\.(\d+)(?:[-+].*)?$")
 
 
@@ -109,6 +114,12 @@ def classify_update(
                 f"removed command alias: {command_path} -> {alias}"
             )
 
+    blocking_reasons.extend(
+        f"completion diagnostic: {diagnostic}" for diagnostic in candidate["completion_diagnostics"]
+    )
+    compatibility_reasons.extend(signature_changes(base, candidate))
+    compatibility_reasons.extend(completion_losses(base, candidate))
+
     if blocking_reasons:
         return PolicyResult(
             "review-required", tuple([*blocking_reasons, *compatibility_reasons])
@@ -116,6 +127,45 @@ def classify_update(
     if compatibility_reasons:
         return PolicyResult("compatibility-change", tuple(compatibility_reasons))
     return PolicyResult("safe", ())
+
+
+def signature_changes(base: dict, candidate: dict) -> list[str]:
+    new_commands = set(candidate["command_paths"])
+    old_signatures = base["argument_signatures"]
+    new_signatures = candidate["argument_signatures"]
+    return [
+        f"changed arguments: {path} from {old_signatures.get(path, '(none)')} "
+        f"to {new_signatures.get(path, '(none)')}"
+        for path in sorted(set(old_signatures) | set(new_signatures))
+        if path in base["command_paths"]
+        and path in new_commands
+        and old_signatures.get(path) != new_signatures.get(path)
+    ]
+
+
+def completion_losses(base: dict, candidate: dict) -> list[str]:
+    reasons = []
+    new_completions = candidate["field_completions"]
+    for key, old in sorted(base["field_completions"].items()):
+        new = new_completions.get(key)
+        old_kind = completion_kind(old)
+        if new is None or old_kind == "exempt":
+            continue
+        new_kind = completion_kind(new)
+        if new_kind != old_kind:
+            reasons.append(f"changed completion: {key} from {old_kind} to {new_kind}")
+        elif old_kind == "literals":
+            removed = [value for value in old["literals"] if value not in new["literals"]]
+            reasons.extend(f"removed completion value: {key} -> {value}" for value in removed)
+            if old.get("delimiter") != new.get("delimiter"):
+                reasons.append(f"changed completion delimiter: {key}")
+        elif old != new:
+            reasons.append(f"changed completion: {key} from {old[old_kind]} to {new[new_kind]}")
+    return reasons
+
+
+def completion_kind(completion: dict) -> str:
+    return next(kind for kind in COMPLETION_KINDS if kind in completion)
 
 
 def parse_version(value: object) -> tuple[int, int, int] | None:
@@ -139,12 +189,26 @@ def validate_manifest(manifest: object, label: str) -> list[str]:
     if reasons:
         return reasons
 
-    if manifest["manifest_version"] != 1:
-        reasons.append(f"{label} manifest_version must be 1")
+    if manifest["manifest_version"] != MANIFEST_VERSION:
+        reasons.append(f"{label} manifest_version must be {MANIFEST_VERSION}")
     if parse_version(manifest["amp_version"]) is None:
         reasons.append(f"{label} manifest amp_version is invalid")
 
-    for field in ("command_paths", "flag_paths", "persistent_flag_paths"):
+    signatures = manifest["argument_signatures"]
+    if not isinstance(signatures, dict) or not all(
+        isinstance(path, str) and isinstance(signature, str) and path and signature
+        for path, signature in signatures.items()
+    ):
+        reasons.append(f"{label} manifest argument_signatures must map command paths to strings")
+
+    completions = manifest["field_completions"]
+    if not isinstance(completions, dict) or not all(
+        isinstance(key, str) and valid_completion(completion)
+        for key, completion in completions.items()
+    ):
+        reasons.append(f"{label} manifest field_completions has an invalid entry")
+
+    for field in ("command_paths", "completion_diagnostics", "flag_paths", "persistent_flag_paths"):
         value = manifest[field]
         if (
             not isinstance(value, list)
@@ -175,6 +239,24 @@ def validate_manifest(manifest: object, label: str) -> list[str]:
         ).issubset(flag_paths):
             reasons.append(f"{label} manifest persistent flags must be flag paths")
     return reasons
+
+
+def valid_completion(completion: object) -> bool:
+    if not isinstance(completion, dict):
+        return False
+    kinds = [kind for kind in COMPLETION_KINDS if kind in completion]
+    if len(kinds) != 1:
+        return False
+    kind = kinds[0]
+    if kind == "literals":
+        values = completion["literals"]
+        return (
+            set(completion) <= {"literals", "delimiter"}
+            and isinstance(values, list)
+            and all(isinstance(value, str) and value for value in values)
+            and isinstance(completion.get("delimiter", ""), str)
+        )
+    return set(completion) == {kind} and isinstance(completion[kind], str)
 
 
 def render_markdown(result: PolicyResult) -> str:
