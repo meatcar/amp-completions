@@ -161,9 +161,11 @@ run.
 Amp threads that handle this automation without supervision start with
 `[automation-guard: unattended]`. The
 [automation guard plugin](.amp/plugins/automation-guard.ts) then restricts them
-to an allowlist of tools and asks the owner before they edit guardrail files,
-write to other repositories, contact unknown hosts, or bypass branch
-protection. Threads a person starts are unaffected.
+to allowlists of tools, `gh` commands, API writes, and hosts. They may push only
+with `git push origin HEAD:refs/heads/amp/<branch>`. Anything else, including
+guardrail edits and branch-protection bypass, needs owner approval. The guard
+parses command text, so it prevents mistakes rather than enforcing permissions.
+Threads a person starts are unaffected.
 
 ### Maintainer notes
 

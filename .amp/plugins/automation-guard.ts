@@ -54,7 +54,12 @@ const ALLOWED_TOOLS = new Set([
   "view_media",
   "read_web_page",
 ]);
-const GUARDED_GH_COMMANDS = new Set(["auth", "repo", "ruleset", "secret", "variable"]);
+const ALLOWED_GH_COMMANDS: Record<string, Set<string>> = {
+  api: new Set(),
+  issue: new Set(["view", "list", "comment"]),
+  pr: new Set(["create", "view", "list", "diff", "checks", "comment", "merge", "checkout"]),
+  run: new Set(["view", "list", "watch", "rerun"]),
+};
 const ALLOWED_AMP_COMMANDS = new Set(["--help", "--version", "files", "orb", "usage"]);
 const RAW_NETWORK_TOOLS = new Set(["nc", "ncat", "netcat", "scp", "sftp", "socat", "ssh"]);
 const URL_TOOLS = new Set(["curl", "wget", "http", "xh"]);
@@ -95,11 +100,14 @@ function ghViolation(words: string[]): string | null {
     const url = word.match(/github\.com\/([^/\s]+\/[^/\s#?]+)/i)?.[1]?.replace(/\.git$/, "");
     if (url && url.toLowerCase() !== REPOSITORY) return `gh targets ${url}`;
   }
-  const [subcommand] = words.slice(1).filter((word) => !word.startsWith("-"));
-  if (GUARDED_GH_COMMANDS.has(subcommand))
-    return `gh ${subcommand} changes account or repository settings`;
-  if (subcommand === "pr" && words.some((word) => /^--admin(=|$)/.test(word)))
-    return "gh pr --admin bypasses branch protection";
+  if (words.some((word) => /^--admin(=|$)/.test(word)))
+    return "gh --admin bypasses branch protection";
+  const [subcommand, action] = words
+    .slice(1)
+    .filter((word, index, rest) => !word.startsWith("-") && !/^(-R|--repo)$/.test(rest[index - 1]));
+  const actions = ALLOWED_GH_COMMANDS[subcommand ?? ""];
+  if (!actions || (subcommand !== "api" && !actions.has(action ?? "")))
+    return `gh ${[subcommand, action].filter(Boolean).join(" ")} is not on the unattended gh allowlist`;
   if (subcommand !== "api") return null;
 
   const method = (optionValue(words, ["-X", "--method"]) ?? "GET").toUpperCase();
@@ -141,6 +149,16 @@ export function toolViolation(tool: string, input: Record<string, unknown>): str
   return tool === "read_web_page" ? urlViolation(input.url) : null;
 }
 
+// NOTE: The only blessed push: a new or updated branch under amp/, never main or tags.
+const BLESSED_PUSH =
+  /^git push (--force-with-lease )?origin HEAD:refs\/heads\/amp\/[\w.-]+(\/[\w.-]+)*$/;
+
+function pushViolation(words: string[]): string | null {
+  return BLESSED_PUSH.test(words.join(" ")) && !words.join(" ").includes("..")
+    ? null
+    : "git push is not `git push origin HEAD:refs/heads/amp/<branch>`";
+}
+
 export function shellViolation(command: string): string | null {
   for (const words of segments(command)) {
     const tool = words[0].split("/").at(-1);
@@ -151,10 +169,8 @@ export function shellViolation(command: string): string | null {
     if (tool === "amp" && !ALLOWED_AMP_COMMANDS.has(words[1] ?? ""))
       return `amp ${words[1] ?? ""} can change Amp settings or start threads`.trimEnd();
     if (tool === "git" && words.includes("push")) {
-      const remote = words.slice(words.indexOf("push") + 1).find((word) => !word.startsWith("-"));
-      if (remote && remote !== "origin") return `git push targets ${remote}`;
-      if (words.some((word) => /^\+?(?:[^:]*:)?(?:refs\/heads\/)?main$/.test(word)))
-        return "git push targets main";
+      const violation = pushViolation(words);
+      if (violation) return violation;
     }
     const violation = networkViolation(words);
     if (violation) return violation;
