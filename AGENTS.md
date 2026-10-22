@@ -1,11 +1,12 @@
 ## Codebase: Python + Carapace + Nix
 
 ```
-flake.nix          # inputs only
-.envrc             # env init
-nix/flake-modules/ # flake parts: devshell.nix, treefmt.nix
+flake.nix            # inputs only
+nix/flake-modules/   # flake parts
 src/amp_completions/ # parser, generator, and update automation
-amp.yaml           # generated, checked-in completion spec
+amp.yaml, amp-manifest.json # generated; never edit by hand
+.github/scripts/     # merge gate; must not import src/
+.amp/plugins/        # guard for unattended threads
 ```
 
 ## Principles
@@ -17,7 +18,7 @@ amp.yaml           # generated, checked-in completion spec
 
 - `direnv exec .`: run commands
 - `nix fmt`: format (run after every source edit)
-- `nix flake check`: run formatting, unit, completion, and generation checks
+- `nix flake check`: run formatting, unit, completion, and generation checks (Nix sandbox: no `/usr/bin/env`)
 
 ## Nix
 
