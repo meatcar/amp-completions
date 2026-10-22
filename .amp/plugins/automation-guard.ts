@@ -153,6 +153,8 @@ export function shellViolation(command: string): string | null {
     if (tool === "git" && words.includes("push")) {
       const remote = words.slice(words.indexOf("push") + 1).find((word) => !word.startsWith("-"));
       if (remote && remote !== "origin") return `git push targets ${remote}`;
+      if (words.some((word) => /^\+?(?:[^:]*:)?(?:refs\/heads\/)?main$/.test(word)))
+        return "git push targets main";
     }
     const violation = networkViolation(words);
     if (violation) return violation;
