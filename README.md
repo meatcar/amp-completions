@@ -89,15 +89,22 @@ reads `amp --help` and each subcommand's help into one command model. That model
 produces two files:
 
 - `amp.yaml` is the completion spec installed by users.
-- `amp-manifest.json` records canonical command and flag paths for update
-  safety checks.
+- `amp-manifest.json` records command and flag paths, argument signatures, and
+  each value's completion for update safety checks.
 
-Both files identify the Amp version that produced them. The generator also
-supplies semantic values that help output cannot describe, such as agent modes,
-visibility levels, orb sizes, and ship behavior. It also adds file and directory
-completion to path-like arguments. For account-specific values, the generated
-spec invokes `amp-completions`, which converts Amp's JSON listing commands into
-Carapace candidates.
+Both files identify the Amp version that produced them.
+[`completions.py`](src/amp_completions/completions.py) assigns every flag value
+and positional argument one completion: values listed in its help text, a
+curated list (such as orb sizes or ship behavior), an account resource, files
+or directories, or an explicit exemption for free-form input. A field without a
+rule, or a rule whose field no longer exists, is a diagnostic: generation prints
+it as a warning and the checks fail until the rule is fixed.
+
+For account-specific values, the generated spec invokes `amp-completions`, which
+converts Amp's JSON listing commands into Carapace candidates. It narrows
+queries by flags already on the command line, such as `--workspace` or
+`--mode`, and caches results under `${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions`
+for 30 seconds (threads) or 5 minutes (everything else).
 
 The pinned Amp executable comes from
 [`llm-agents.nix`](https://github.com/numtide/llm-agents.nix). Generated output
@@ -130,14 +137,15 @@ parser, policy, workflow, and completion tests.
   shortly after upstream Amp packages usually update. Every generated update
   that passes the parser, determinism, scope, size, and full flake checks
   merges automatically if `main` still matches the revision that was checked.
-  Command and flag removals remain visible in the pull request but do not
-  require maintainer input. If `main` advances during validation, the next
-  scheduled run rebuilds the candidate instead of merging stale validation.
-  New and changed commands, flags, aliases, and help text are discovered
-  automatically. Semantic completion rules are curated: an existing recognized
-  flag name automatically keeps its enum or filesystem completion, but a new
-  resource argument, a changed enum, or a changed JSON response shape requires
-  a generator/helper update.
+  Removed commands, flags, arguments, and completion values remain visible in
+  the pull request but do not require maintainer input. If `main` advances
+  during validation, the next scheduled run rebuilds the candidate instead of
+  merging stale validation. New and changed commands, flags, aliases, and help
+  text are discovered automatically, and values listed in help text follow
+  Amp. An update with a completion diagnostic needs maintainer input: a new
+  value-taking field without a rule, a curated rule left pointing at a removed
+  field, or help text that no longer lists documented values. A changed JSON
+  response shape also requires a helper update.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly and merges them under the same rules. It cannot
   change `llm-agents` or files other than `flake.lock`.
