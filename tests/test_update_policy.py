@@ -97,14 +97,27 @@ class UpdatePolicyTest(unittest.TestCase):
         result = update_policy.classify_update(
             BASE_MANIFEST,
             candidate(
-                completion_diagnostics=["rule targets no value-taking field: amp threads --color"]
+                completion_diagnostics=["no completion rule: amp threads --color"]
             ),
         )
 
         self.assertEqual(result.classification, "review-required")
-        self.assertIn(
-            "completion diagnostic: rule targets no value-taking field: amp threads --color",
-            result.reasons,
+        self.assertIn("completion diagnostic: no completion rule: amp threads --color", result.reasons)
+
+    def test_blocks_candidate_that_drops_completion_to_free_form(self) -> None:
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(
+                field_completions={
+                    **FIELD_COMPLETIONS,
+                    "amp threads <thread>": {"exempt": "free-form text"},
+                }
+            ),
+        )
+
+        self.assertEqual(result.classification, "review-required")
+        self.assertEqual(
+            result.reasons, ("completion became exempt: amp threads <thread> (was resource)",)
         )
 
     def test_accepts_added_completion_values(self) -> None:

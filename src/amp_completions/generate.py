@@ -195,7 +195,7 @@ def main() -> None:
 
     root, version = inspect_amp(arguments.amp)
     resolution = resolve(root)
-    for diagnostic in resolution.diagnostics:
+    for diagnostic in (*resolution.diagnostics, *resolution.stale_rules):
         print(f"warning: {diagnostic}", file=sys.stderr)
     arguments.output.write_text(render(root, version, resolution))
     arguments.manifest_output.write_text(render_manifest(root, version, resolution))

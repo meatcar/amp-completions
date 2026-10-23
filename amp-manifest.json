@@ -534,10 +534,7 @@
     "no completion rule: amp threads import devin --devin-dir",
     "no completion rule: amp threads import devin <sessionIds>",
     "no completion rule: amp threads import pi --pi-dir",
-    "no completion rule: amp threads import pi <sessionIds>",
-    "rule targets no value-taking field: amp config model-providers setup-guide <router>",
-    "rule targets no value-taking field: amp threads visibility <visibility>",
-    "unused placeholder default: <artifact-url>"
+    "no completion rule: amp threads import pi <sessionIds>"
   ],
   "field_completions": {
     "amp --attach": {

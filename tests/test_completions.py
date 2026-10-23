@@ -24,21 +24,25 @@ class ResolveTest(unittest.TestCase):
             resolution.completions[("amp", "threads", "search", "<query>")], completions.Exempt
         )
 
-    def test_reports_rules_whose_field_disappeared(self) -> None:
+    def test_rules_whose_field_disappeared_are_stale_not_blocking(self) -> None:
         resolution = completions.resolve(
             tree(("threads color", [], ["<thread>"]), ("plugins add", ["--target"], []))
         )
 
         self.assertIn(
             "rule targets no value-taking field: amp threads color <color>",
-            resolution.diagnostics,
+            resolution.stale_rules,
         )
         self.assertIn(
             "rule targets no value-taking field: amp plugins add --target",
-            resolution.diagnostics,
+            resolution.stale_rules,
         )
         self.assertNotIn(
             "rule targets no value-taking field: amp threads color <thread>",
+            resolution.stale_rules,
+        )
+        self.assertFalse(
+            any("rule targets" in d or "unused" in d for d in resolution.diagnostics),
             resolution.diagnostics,
         )
 

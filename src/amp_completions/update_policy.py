@@ -117,6 +117,7 @@ def classify_update(
     blocking_reasons.extend(
         f"completion diagnostic: {diagnostic}" for diagnostic in candidate["completion_diagnostics"]
     )
+    blocking_reasons.extend(lost_completions(base, candidate))
     compatibility_reasons.extend(signature_changes(base, candidate))
     compatibility_reasons.extend(completion_losses(base, candidate))
 
@@ -143,13 +144,24 @@ def signature_changes(base: dict, candidate: dict) -> list[str]:
     ]
 
 
+def lost_completions(base: dict, candidate: dict) -> list[str]:
+    new_completions = candidate["field_completions"]
+    return [
+        f"completion became exempt: {key} (was {completion_kind(old)})"
+        for key, old in sorted(base["field_completions"].items())
+        if (new := new_completions.get(key)) is not None
+        and completion_kind(old) != "exempt"
+        and completion_kind(new) == "exempt"
+    ]
+
+
 def completion_losses(base: dict, candidate: dict) -> list[str]:
     reasons = []
     new_completions = candidate["field_completions"]
     for key, old in sorted(base["field_completions"].items()):
         new = new_completions.get(key)
         old_kind = completion_kind(old)
-        if new is None or old_kind == "exempt":
+        if new is None or old_kind == "exempt" or completion_kind(new) == "exempt":
             continue
         new_kind = completion_kind(new)
         if new_kind != old_kind:

@@ -246,8 +246,9 @@ class ManifestTest(unittest.TestCase):
             manifest = json.loads(manifest_output.read_text())
             self.assertEqual(manifest["amp_version"], "1.2.3")
             warnings = [line.removeprefix("warning: ") for line in stderr.getvalue().splitlines()]
-            self.assertEqual(sorted(warnings), manifest["completion_diagnostics"])
             self.assertIn("unused flag default: --mode", warnings)
+            self.assertNotIn("unused flag default: --mode", manifest["completion_diagnostics"])
+            self.assertTrue(set(manifest["completion_diagnostics"]) <= set(warnings))
 
 
 if __name__ == "__main__":

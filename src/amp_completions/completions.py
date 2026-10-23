@@ -301,6 +301,7 @@ class Field:
 class Resolution:
     completions: dict[tuple[str, ...], Completion]
     diagnostics: tuple[str, ...]
+    stale_rules: tuple[str, ...] = ()
 
     def flags(self, path: tuple[str, ...], command: Command) -> list[tuple[str, Completion]]:
         return [
@@ -367,15 +368,15 @@ def resolve(root: Command) -> Resolution:
         completions[field.key] = completion
 
     live_keys = {field.key for field in fields(root)}
-    diagnostics.extend(
-        f"rule targets no value-taking field: {' '.join(key)}"
-        for key in sorted(set(EXACT) - live_keys)
-    )
-    diagnostics.extend(
-        f"unused flag default: --{name}" for name in sorted(set(FLAG_DEFAULTS) - used_flag_defaults)
-    )
-    diagnostics.extend(
-        f"unused placeholder default: <{name}>"
-        for name in sorted(set(PLACEHOLDER_DEFAULTS) - used_placeholder_defaults)
-    )
-    return Resolution(completions, tuple(diagnostics))
+    stale_rules = [
+        *(
+            f"rule targets no value-taking field: {' '.join(key)}"
+            for key in sorted(set(EXACT) - live_keys)
+        ),
+        *(f"unused flag default: --{name}" for name in sorted(set(FLAG_DEFAULTS) - used_flag_defaults)),
+        *(
+            f"unused placeholder default: <{name}>"
+            for name in sorted(set(PLACEHOLDER_DEFAULTS) - used_placeholder_defaults)
+        ),
+    ]
+    return Resolution(completions, tuple(diagnostics), tuple(stale_rules))
