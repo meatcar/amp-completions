@@ -107,12 +107,12 @@ converts Amp's JSON listing commands into Carapace candidates. It narrows
 queries by flags already on the command line, such as `--workspace` or
 `--mode`, and caches the rendered candidates under
 `${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions` for 30 seconds (threads) or
-5 minutes (everything else). After a failed query it serves the last good list,
-or nothing, and waits 30 seconds before asking Amp again. Logging in, switching
-accounts, changing `AMP_API_KEY` or `AMP_URL`, editing Amp settings, or
-upgrading the helper starts a fresh cache. Secret
-names complete only after a scope flag such as `--user` or `--workspace`; values
-are never requested. Carapace passes only the current command's own flags, so
+5 minutes (everything else). After a failed query it serves the last good list
+for up to a day, or nothing, and waits 30 seconds before asking Amp again.
+Logging in, switching accounts, changing `AMP_API_KEY` or `AMP_URL`, editing
+Amp settings, or upgrading the helper starts a fresh cache. Secret names
+complete only after a scope flag such as `--user` or `--workspace`; values are
+never requested. Carapace passes only the current command's own flags, so
 persistent flags (`--settings-file`) and flags given to a parent command do not
 narrow results.
 
@@ -155,7 +155,9 @@ parser, policy, workflow, and completion tests.
   Amp. An update needs maintainer input when a new value-taking field has no
   rule, help text no longer lists documented values, or a field loses its
   completion and becomes free-form. Add the rule on `main` and the next hourly
-  run picks it up. A changed JSON response shape also requires a helper update;
+  run picks it up. A rule for help text that changed format must also pass on
+  the current Amp, so use a curated list or bump `llm-agents` in the same pull
+  request. A changed JSON response shape also requires a helper update;
   until then the helper skips records it cannot read.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly and merges them under the same rules. It cannot
