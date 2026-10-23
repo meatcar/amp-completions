@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1792656060-g6af3d5",
+  "amp_version": "0.0.1792699242-g1cbc87",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -328,6 +328,7 @@
     "amp config model-providers --json",
     "amp config model-providers --workspace",
     "amp config model-providers add-chatgpt-subscription --legacy",
+    "amp config model-providers add-router --acknowledge-hosted-in-china",
     "amp config model-providers add-router --active",
     "amp config model-providers add-router --api-format",
     "amp config model-providers add-router --api-key-file",
@@ -356,9 +357,11 @@
     "amp config model-providers check-access --reasoning-effort",
     "amp config model-providers check-access --thread",
     "amp config model-providers deactivate --yes",
+    "amp config model-providers edit-key --acknowledge-hosted-in-china",
     "amp config model-providers edit-key --clear-model-mapping",
     "amp config model-providers edit-key --model-mapping",
     "amp config model-providers edit-key --name",
+    "amp config model-providers edit-router --acknowledge-hosted-in-china",
     "amp config model-providers edit-router --api-format",
     "amp config model-providers edit-router --api-key-file",
     "amp config model-providers edit-router --aws-region",
