@@ -9,25 +9,34 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable
+from collections import Counter
+from collections.abc import Callable, Iterable
 from pathlib import Path
 
 
 DEFAULT_AMP = "amp"
-QUERY_TIMEOUT_SECONDS = 5
+QUERY_TIMEOUT_SECONDS = 10
 TOOLS_TIMEOUT_SECONDS = 15
 THREAD_LIMIT = 500
 CACHE_SECONDS = 300
 CACHE_RETENTION_SECONDS = 86_400
+FAILURE_BACKOFF_SECONDS = 30
 THREAD_CACHE_SECONDS = 30
+RECORD_ERRORS = (KeyError, TypeError, ValueError)
 COMPLETION_ERRORS = (
     OSError,
     subprocess.SubprocessError,
     json.JSONDecodeError,
-    KeyError,
-    TypeError,
-    ValueError,
+    *RECORD_ERRORS,
 )
+
+Candidate = tuple[str, str]
+
+
+class PartialResult(Exception):
+    def __init__(self, values: list[Candidate]) -> None:
+        super().__init__("some queries failed")
+        self.values = values
 
 
 def run_json(amp: str, arguments: list[str], timeout: float = QUERY_TIMEOUT_SECONDS) -> object:
@@ -83,7 +92,8 @@ def amp_state() -> list[object]:
 
 def cache_path(amp: str, resource: str) -> Path:
     flags = sorted((name, value) for name, value in os.environ.items() if name.startswith("C_FLAG_"))
-    key = json.dumps([amp, os.getcwd(), resource, flags, amp_state()])
+    helper = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
+    key = json.dumps([helper, amp, os.getcwd(), resource, flags, amp_state()])
     return cache_directory() / hashlib.sha256(key.encode()).hexdigest()
 
 
@@ -94,11 +104,13 @@ def read_cache(path: Path) -> tuple[float, str] | None:
         return None
 
 
-def write_cache(path: Path, output: str) -> None:
+def write_cache(path: Path, output: str, written_at: float) -> None:
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+        path.parent.chmod(0o700)
         with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as file:
             file.write(output)
+        os.utime(file.name, (written_at, written_at))
         os.replace(file.name, path)
     except OSError:
         return
@@ -107,7 +119,11 @@ def write_cache(path: Path, output: str) -> None:
 
 def prune_cache(directory: Path) -> None:
     cutoff = time.time() - CACHE_RETENTION_SECONDS
-    for entry in directory.iterdir():
+    try:
+        entries = list(directory.iterdir())
+    except OSError:
+        return
+    for entry in entries:
         try:
             if entry.stat().st_mtime < cutoff:
                 entry.unlink()
@@ -115,15 +131,21 @@ def prune_cache(directory: Path) -> None:
             continue
 
 
-def cached_output(path: Path, max_age: float, compute: Callable[[], str]) -> str:
+def cached_output(path: Path, max_age: float, compute: Callable[[], list[Candidate]]) -> str:
+    now = time.time()
     cached = read_cache(path)
-    if cached is not None and time.time() - cached[0] < max_age:
+    if cached is not None and now - cached[0] < max_age:
         return cached[1]
     try:
-        output = compute()
+        output = render(compute())
+    except PartialResult as partial:
+        output = render(partial.values) if cached is None else cached[1]
     except COMPLETION_ERRORS:
-        return "" if cached is None else cached[1]
-    write_cache(path, output)
+        output = "" if cached is None else cached[1]
+    else:
+        write_cache(path, output, now)
+        return output
+    write_cache(path, output, now - max(0, max_age - FAILURE_BACKOFF_SECONDS))
     return output
 
 
@@ -171,7 +193,17 @@ def listing(response: object, key: str) -> list[dict[str, object]]:
     return records(response[key])
 
 
-def complete_threads(amp: str) -> list[tuple[str, str]]:
+def collect[T](items: Iterable[T], make: Callable[[T], Candidate]) -> list[Candidate]:
+    values = []
+    for item in items:
+        try:
+            values.append(make(item))
+        except RECORD_ERRORS:
+            continue
+    return values
+
+
+def complete_threads(amp: str) -> list[Candidate]:
     threads = run_json(
         amp,
         [
@@ -185,41 +217,44 @@ def complete_threads(amp: str) -> list[tuple[str, str]]:
             "--json",
         ],
     )
-    return [candidate(thread["id"], thread.get("title")) for thread in records(threads)]
+    return collect(records(threads), lambda thread: candidate(thread["id"], thread.get("title")))
 
 
-def complete_projects(amp: str) -> list[tuple[str, str]]:
-    return [
-        candidate(
+def complete_projects(amp: str) -> list[Candidate]:
+    return collect(
+        records(run_json(amp, ["projects", "list", "--json"])),
+        lambda project: candidate(
             f"{text(project['namespace'])}/{text(project['name'])}",
             project.get("repositoryURL"),
-        )
-        for project in records(run_json(amp, ["projects", "list", "--json"]))
-    ]
+        ),
+    )
 
 
-def complete_tools(amp: str) -> list[tuple[str, str]]:
+def complete_tools(amp: str) -> list[Candidate]:
     mode = context("mode")
     query = ["tools", "list", *(["--mode", mode] if mode else []), "--json"]
-    return [
-        candidate(tool["name"], tool.get("description"))
-        for tool in records(run_json(amp, query, TOOLS_TIMEOUT_SECONDS))
-    ]
+    return collect(
+        records(run_json(amp, query, TOOLS_TIMEOUT_SECONDS)),
+        lambda tool: candidate(tool["name"], tool.get("description")),
+    )
 
 
-def complete_skills(amp: str) -> list[tuple[str, str]]:
-    return [
-        candidate(skill["name"], skill.get("description"))
-        for skill in listing(run_json(amp, ["skill", "list", "--json"]), "skills")
-    ]
+def complete_skills(amp: str) -> list[Candidate]:
+    return collect(
+        listing(run_json(amp, ["skill", "list", "--json"]), "skills"),
+        lambda skill: candidate(skill["name"], skill.get("description")),
+    )
 
 
-def complete_mcp_servers(amp: str, *, remote: bool) -> list[tuple[str, str]]:
-    return [
-        candidate(server["name"], server.get("source"))
-        for server in records(run_json(amp, ["mcp", "list", "--json"]))
-        if (server.get("source") == "account") == remote
-    ]
+def complete_mcp_servers(amp: str, *, remote: bool) -> list[Candidate]:
+    return collect(
+        (
+            server
+            for server in records(run_json(amp, ["mcp", "list", "--json"]))
+            if (server.get("source") == "account") == remote
+        ),
+        lambda server: candidate(server["name"], server.get("source")),
+    )
 
 
 def remote_mcp_scope() -> list[str]:
@@ -232,42 +267,42 @@ def remote_mcp_scope() -> list[str]:
     return []
 
 
-def complete_remote_mcp_servers(amp: str) -> list[tuple[str, str]]:
+def remote_mcp_server(server: dict[str, object]) -> Candidate:
+    name = text(server["name"])
+    if any(character.isspace() for character in name):
+        return candidate(server["id"], name)
+    return candidate(name, server.get("url"))
+
+
+def complete_remote_mcp_servers(amp: str) -> list[Candidate]:
     scope = remote_mcp_scope()
     if not scope:
         return complete_mcp_servers(amp, remote=True)
-    values = []
-    for server in listing(run_json(amp, ["mcp", "remote", "list", *scope, "--json"]), "servers"):
-        name = text(server["name"])
-        if any(character.isspace() for character in name):
-            values.append(candidate(server["id"], name))
-        else:
-            values.append(candidate(name, server.get("url")))
-    return values
+    servers = listing(run_json(amp, ["mcp", "remote", "list", *scope, "--json"]), "servers")
+    return collect(servers, remote_mcp_server)
 
 
-def complete_model_providers(amp: str) -> list[tuple[str, str]]:
-    values = []
+def model_provider(provider: dict[str, object]) -> Candidate:
+    name = text(provider.get("name"))
+    provider_type = text(provider.get("type"))
+    description = f"{name} ({provider_type})" if name and provider_type else name or provider_type
+    return candidate(provider["id"], description)
+
+
+def complete_model_providers(amp: str) -> list[Candidate]:
     scope = ["--workspace"] if enabled("workspace") else []
     providers = run_json(amp, ["config", "model-providers", "list", *scope, "--json"])
-    for provider in records(providers):
-        name = text(provider.get("name"))
-        provider_type = text(provider.get("type"))
-        description = (
-            f"{name} ({provider_type})"
-            if name and provider_type
-            else name or provider_type
-        )
-        values.append(candidate(provider["id"], description))
-    return values
+    return collect(records(providers), model_provider)
 
 
-def complete_domain_scope(amp: str, scope: str) -> list[tuple[str, str]]:
-    domains = run_json(amp, ["domains", "list", scope, "--json"])
-    return [candidate(domain["hostname"], domain.get("status")) for domain in records(domains)]
+def complete_domain_scope(amp: str, scope: str) -> list[Candidate]:
+    return collect(
+        records(run_json(amp, ["domains", "list", scope, "--json"])),
+        lambda domain: candidate(domain["hostname"], domain.get("status")),
+    )
 
 
-def complete_domains(amp: str) -> list[tuple[str, str]]:
+def complete_domains(amp: str) -> list[Candidate]:
     scopes = [f"--{flag}" for flag in ("user", "workspace") if enabled(flag)] or [
         "--user",
         "--workspace",
@@ -283,23 +318,32 @@ def complete_domains(amp: str) -> list[tuple[str, str]]:
             errors.append(error)
     if len(errors) == len(futures):
         raise errors[0]
+    if errors:
+        raise PartialResult(values)
     return values
 
 
-def complete_accounts(amp: str) -> list[tuple[str, str]]:
-    values = []
-    for account in listing(run_json(amp, ["account", "list", "--json"]), "accounts"):
-        user_id = first_text(account, "userID", "userId", "id")
-        email = text(account.get("email"))
-        values.append(candidate(email, user_id) if email else candidate(user_id))
-    return values
+def complete_accounts(amp: str) -> list[Candidate]:
+    accounts = collect(
+        listing(run_json(amp, ["account", "list", "--json"]), "accounts"),
+        lambda account: (text(account.get("email")), first_text(account, "userID", "userId", "id")),
+    )
+    emails = Counter(email for email, _ in accounts)
+
+    def account_candidate(account: tuple[str, str]) -> Candidate:
+        email, user_id = account
+        if email and emails[email] == 1:
+            return candidate(email, user_id)
+        return candidate(user_id, email)
+
+    return collect(accounts, account_candidate)
 
 
-def complete_runners(amp: str) -> list[tuple[str, str]]:
-    return [
-        candidate(first_text(runner, "id", "runnerID", "runnerId"))
-        for runner in listing(run_json(amp, ["runner", "list", "--json"]), "runners")
-    ]
+def complete_runners(amp: str) -> list[Candidate]:
+    return collect(
+        listing(run_json(amp, ["runner", "list", "--json"]), "runners"),
+        lambda runner: candidate(first_text(runner, "id", "runnerID", "runnerId")),
+    )
 
 
 def secrets_scope() -> list[str] | None:
@@ -315,14 +359,14 @@ def secrets_scope() -> list[str] | None:
     return None
 
 
-def complete_secrets(amp: str) -> list[tuple[str, str]]:
+def complete_secrets(amp: str) -> list[Candidate]:
     scope = secrets_scope()
     if scope is None:
         return []
-    return [
-        candidate(secret["name"])
-        for secret in records(run_json(amp, ["secrets", "list", *scope, "--json"]))
-    ]
+    return collect(
+        records(run_json(amp, ["secrets", "list", *scope, "--json"])),
+        lambda secret: candidate(secret["name"]),
+    )
 
 
 COMPLETERS = {
@@ -373,7 +417,7 @@ def main() -> None:
     output = cached_output(
         cache_path(executable, resource),
         max_age,
-        lambda: render(COMPLETERS[resource](executable)),
+        lambda: COMPLETERS[resource](executable),
     )
     write_output(output)
 

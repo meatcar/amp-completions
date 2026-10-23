@@ -31,6 +31,7 @@ class CompleteCliTest(unittest.TestCase):
         amp_exit_code: int = 0,
         *,
         responses: dict[str, object] | None = None,
+        failures: list[str] | None = None,
         context: dict[str, str] | None = None,
     ) -> dict[str, str]:
         amp = self.directory / "amp"
@@ -40,8 +41,8 @@ class CompleteCliTest(unittest.TestCase):
             "import sys\n"
             f"with open({str(self.directory / 'calls')!r}, 'a') as log:\n"
             "    log.write(' '.join(sys.argv[1:]) + '\\n')\n"
-            f"if {amp_exit_code}:\n"
-            f"    sys.exit({amp_exit_code})\n"
+            f"if {amp_exit_code} or ' '.join(sys.argv[1:]) in {failures or []!r}:\n"
+            f"    sys.exit({amp_exit_code} or 1)\n"
             f"responses = json.loads({json.dumps(responses or {})!r})\n"
             f"response = responses.get(' '.join(sys.argv[1:]), json.loads({json.dumps(response)!r}))\n"
             "if sys.argv[1] == 'threads' and 'list' in sys.argv:\n"
@@ -197,10 +198,12 @@ class CompleteCliTest(unittest.TestCase):
                 {
                     "accounts": [
                         {"email": "me@example.com", "userID": "user_1"},
-                        {"email": None, "userID": "user_2"},
+                        {"email": None, "userId": "user_2"},
+                        {"email": "dup@example.com", "id": "user_3"},
+                        {"email": "dup@example.com", "id": "user_4"},
                     ]
                 },
-                "me@example.com\tuser_1\nuser_2\n",
+                "me@example.com\tuser_1\nuser_2\nuser_3\tdup@example.com\nuser_4\tdup@example.com\n",
             ),
             "runners": (
                 {"runners": [{"id": "garage", "directories": ["/srv"]}, {"runnerID": "attic"}]},
@@ -228,19 +231,37 @@ class CompleteCliTest(unittest.TestCase):
         self.assertEqual(len(lines), complete.THREAD_LIMIT)
         self.assertEqual(lines[-1], f"T-{complete.THREAD_LIMIT - 1:04}\tThread {complete.THREAD_LIMIT - 1}")
 
-    def test_rejects_malformed_candidates_without_output(self) -> None:
+    def test_skips_malformed_records_and_keeps_the_rest(self) -> None:
         cases = {
-            "tools": [{"name": "shell_command", "description": 42}],
-            "threads": [{"id": None, "title": "Missing ID"}],
-            "projects": [{"namespace": "meatcar", "name": ["amp"]}],
+            "tools": [{"name": "shell_command", "description": 42}, {"name": "oracle"}],
+            "threads": [{"id": None, "title": "Missing ID"}, {"id": "T-1"}],
+            "projects": [
+                {"namespace": "meatcar", "name": ["amp"]},
+                {"namespace": "meatcar", "name": "amp"},
+            ],
+            "runners": {"runners": [{"id": 7}, {"name": "no id"}, {"id": "garage"}]},
+            "secrets": [{"key": "OLD_SHAPE"}, {"name": "API_TOKEN"}],
+        }
+        expected = {
+            "tools": "oracle\n",
+            "threads": "T-1\n",
+            "projects": "meatcar/amp\n",
+            "runners": "garage\n",
+            "secrets": "API_TOKEN\n",
         }
 
         for resource, response in cases.items():
             with self.subTest(resource=resource):
-                result = self.run_complete(resource, response)
+                result = self.run_complete(resource, response, context={"C_FLAG_USER": "true"})
                 self.assertEqual(result.returncode, 0)
-                self.assertEqual(result.stdout, "")
+                self.assertEqual(result.stdout, expected[resource])
                 self.assertEqual(result.stderr, "")
+
+    def test_unexpected_response_shape_completes_nothing(self) -> None:
+        result = self.run_complete("runners", [{"id": "garage"}])
+
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(result.stderr, "")
 
     def test_closed_output_is_silent(self) -> None:
         threads = [{"id": f"T-{number:04}", "title": "x" * 200} for number in range(500)]
@@ -328,6 +349,41 @@ class CompleteCliTest(unittest.TestCase):
 
         self.assertEqual(result.stdout, "meatcar/amp\n")
         self.assertEqual(len(self.calls), 2)
+
+    def test_failed_refresh_backs_off_before_retrying(self) -> None:
+        self.run_complete("projects", amp_exit_code=1)
+        again = self.run_complete("projects", [{"namespace": "meatcar", "name": "amp"}])
+
+        self.assertEqual(again.stdout, "")
+        self.assertEqual(len(self.calls), 1)
+
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            later = entry.stat().st_mtime - complete.FAILURE_BACKOFF_SECONDS - 1
+            os.utime(entry, (later, later))
+        recovered = self.run_complete("projects", [{"namespace": "meatcar", "name": "amp"}])
+
+        self.assertEqual(recovered.stdout, "meatcar/amp\n")
+        self.assertEqual(len(self.calls), 2)
+
+    def test_partial_domain_failure_keeps_the_complete_list(self) -> None:
+        responses = {
+            "domains list --user --json": [{"hostname": "me.example.com"}],
+            "domains list --workspace --json": [{"hostname": "team.example.com"}],
+        }
+        cold = self.run_complete(
+            "domains", responses=responses, failures=["domains list --workspace --json"]
+        )
+        self.assertEqual(cold.stdout, "me.example.com\n")
+
+        shutil.rmtree(self.directory / "cache")
+        self.run_complete("domains", responses=responses)
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            os.utime(entry, (0, 0))
+        warm = self.run_complete(
+            "domains", responses=responses, failures=["domains list --workspace --json"]
+        )
+
+        self.assertEqual(warm.stdout, "me.example.com\nteam.example.com\n")
 
     def test_domain_scope_flag_selects_one_account(self) -> None:
         result = self.run_complete(
