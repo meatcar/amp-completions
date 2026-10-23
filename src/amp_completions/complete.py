@@ -104,13 +104,12 @@ def read_cache(path: Path) -> tuple[float, str] | None:
         return None
 
 
-def write_cache(path: Path, output: str, written_at: float) -> None:
+def write_cache(path: Path, output: str) -> None:
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         path.parent.chmod(0o700)
         with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as file:
             file.write(output)
-        os.utime(file.name, (written_at, written_at))
         os.replace(file.name, path)
     except OSError:
         return
@@ -131,21 +130,31 @@ def prune_cache(directory: Path) -> None:
             continue
 
 
+def parse(output: str) -> list[Candidate]:
+    return [(value, description) for value, _, description in (line.partition("\t") for line in output.splitlines())]
+
+
 def cached_output(path: Path, max_age: float, compute: Callable[[], list[Candidate]]) -> str:
     now = time.time()
     cached = read_cache(path)
     if cached is not None and now - cached[0] < max_age:
         return cached[1]
+    failure = path.with_name(f"{path.name}.failed")
+    failed = read_cache(failure)
+    if failed is not None and now - failed[0] < FAILURE_BACKOFF_SECONDS:
+        return failed[1]
+    previous = "" if cached is None else cached[1]
     try:
         output = render(compute())
     except PartialResult as partial:
-        output = render(partial.values) if cached is None else cached[1]
+        output = render([*partial.values, *parse(previous)])
     except COMPLETION_ERRORS:
-        output = "" if cached is None else cached[1]
+        output = previous
     else:
-        write_cache(path, output, now)
+        write_cache(path, output)
+        failure.unlink(missing_ok=True)
         return output
-    write_cache(path, output, now - max(0, max_age - FAILURE_BACKOFF_SECONDS))
+    write_cache(failure, output)
     return output
 
 

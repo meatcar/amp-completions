@@ -365,6 +365,21 @@ class CompleteCliTest(unittest.TestCase):
         self.assertEqual(recovered.stdout, "meatcar/amp\n")
         self.assertEqual(len(self.calls), 2)
 
+    def test_repeated_failures_stop_serving_lists_past_retention(self) -> None:
+        self.run_complete("projects", [{"namespace": "meatcar", "name": "amp"}])
+        cache = self.directory / "cache" / "amp-completions"
+        expired = time.time() - complete.CACHE_RETENTION_SECONDS - 60
+        for entry in cache.iterdir():
+            os.utime(entry, (expired, expired))
+
+        last_known = self.run_complete("projects", amp_exit_code=1)
+        for entry in cache.iterdir():
+            os.utime(entry, (0, 0))
+        retired = self.run_complete("projects", amp_exit_code=1)
+
+        self.assertEqual(last_known.stdout, "meatcar/amp\n")
+        self.assertEqual(retired.stdout, "")
+
     def test_partial_domain_failure_keeps_the_complete_list(self) -> None:
         responses = {
             "domains list --user --json": [{"hostname": "me.example.com"}],
@@ -374,6 +389,17 @@ class CompleteCliTest(unittest.TestCase):
             "domains", responses=responses, failures=["domains list --workspace --json"]
         )
         self.assertEqual(cold.stdout, "me.example.com\n")
+        backing_off = self.run_complete("domains", responses=responses)
+        self.assertEqual(backing_off.stdout, "me.example.com\n")
+
+        shutil.rmtree(self.directory / "cache")
+        self.run_complete("domains", amp_exit_code=1)
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            os.utime(entry, (0, 0))
+        recovering = self.run_complete(
+            "domains", responses=responses, failures=["domains list --user --json"]
+        )
+        self.assertEqual(recovering.stdout, "team.example.com\n")
 
         shutil.rmtree(self.directory / "cache")
         self.run_complete("domains", responses=responses)
