@@ -98,16 +98,19 @@ Both files identify the Amp version that produced them.
 and positional argument one completion: values listed in its help text, a
 curated list (such as orb sizes or ship behavior), an account resource, files
 or directories, or an explicit exemption for free-form input. A field without a
-rule, or a rule whose field no longer exists, is a diagnostic: generation prints
-it as a warning and the checks fail until the rule is fixed.
+rule is a diagnostic: generation prints it as a warning and the checks fail
+until the rule is added. A rule whose field does not exist is only a warning, so
+rules for an upcoming Amp field can land before the update.
 
 For account-specific values, the generated spec invokes `amp-completions`, which
 converts Amp's JSON listing commands into Carapace candidates. It narrows
 queries by flags already on the command line, such as `--workspace` or
 `--mode`, and caches the rendered candidates under
 `${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions` for 30 seconds (threads) or
-5 minutes (everything else). Logging in, switching accounts, changing
-`AMP_API_KEY` or `AMP_URL`, or editing Amp settings starts a fresh cache. Secret
+5 minutes (everything else). After a failed query it serves the last good list,
+or nothing, and waits 30 seconds before asking Amp again. Logging in, switching
+accounts, changing `AMP_API_KEY` or `AMP_URL`, editing Amp settings, or
+upgrading the helper starts a fresh cache. Secret
 names complete only after a scope flag such as `--user` or `--workspace`; values
 are never requested. Carapace passes only the current command's own flags, so
 persistent flags (`--settings-file`) and flags given to a parent command do not
@@ -149,10 +152,11 @@ parser, policy, workflow, and completion tests.
   during validation, the next scheduled run rebuilds the candidate instead of
   merging stale validation. New and changed commands, flags, aliases, and help
   text are discovered automatically, and values listed in help text follow
-  Amp. An update with a completion diagnostic needs maintainer input: a new
-  value-taking field without a rule, a curated rule left pointing at a removed
-  field, or help text that no longer lists documented values. A changed JSON
-  response shape also requires a helper update.
+  Amp. An update needs maintainer input when a new value-taking field has no
+  rule, help text no longer lists documented values, or a field loses its
+  completion and becomes free-form. Add the rule on `main` and the next hourly
+  run picks it up. A changed JSON response shape also requires a helper update;
+  until then the helper skips records it cannot read.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly and merges them under the same rules. It cannot
   change `llm-agents` or files other than `flake.lock`.
