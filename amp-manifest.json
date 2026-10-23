@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1792699242-g1cbc87",
+  "amp_version": "0.0.1792785637-g8d232a",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -311,7 +311,6 @@
     "amp --runner-dir",
     "amp --settings-file",
     "amp --share",
-    "amp --share-browser",
     "amp --share-network",
     "amp --stream-json",
     "amp --stream-json-input",
@@ -726,7 +725,6 @@
     "amp --runner-dir",
     "amp --settings-file",
     "amp --share",
-    "amp --share-browser",
     "amp --share-network",
     "amp --stream-json",
     "amp --stream-json-input",
