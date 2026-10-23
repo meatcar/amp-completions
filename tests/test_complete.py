@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -58,6 +59,8 @@ class CompleteCliTest(unittest.TestCase):
                 "AMP_BIN": str(amp),
                 "PYTHONPATH": str(ROOT / "src"),
                 "XDG_CACHE_HOME": str(self.directory / "cache"),
+                "XDG_CONFIG_HOME": str(self.directory / "config"),
+                "XDG_DATA_HOME": str(self.directory / "data"),
                 **(context or {}),
             }
         )
@@ -68,14 +71,21 @@ class CompleteCliTest(unittest.TestCase):
         resource: str,
         response: object = None,
         amp_exit_code: int = 0,
+        cwd: Path | None = None,
         **options: dict[str, object] | dict[str, str],
     ) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [sys.executable, "-m", "amp_completions.complete", resource],
             capture_output=True,
+            cwd=cwd,
             env=self.environment(response, amp_exit_code, **options),
             text=True,
         )
+
+    def write(self, path: str, content: str) -> None:
+        target = self.directory / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content)
 
     def start_complete(self, resource: str, response: object) -> subprocess.Popen[str]:
         return subprocess.Popen(
@@ -241,6 +251,49 @@ class CompleteCliTest(unittest.TestCase):
         cache = self.directory / "cache" / "amp-completions"
         self.assertEqual(cache.stat().st_mode & 0o777, 0o700)
         self.assertTrue(all(entry.stat().st_mode & 0o077 == 0 for entry in cache.iterdir()))
+
+    def test_amp_state_changes_invalidate_cache(self) -> None:
+        workspace = self.directory / "workspace"
+        (workspace / ".git").mkdir(parents=True)
+        (workspace / "src").mkdir()
+        changes = {
+            "account switch": lambda: self.write("data/amp/accounts.json", "{}"),
+            "login": lambda: self.write("data/amp/secrets.json", "{}"),
+            "user settings": lambda: self.write("config/amp/settings.json", "{}"),
+            "workspace settings": lambda: self.write("workspace/.amp/settings.json", "{}"),
+            "access token": lambda: {"AMP_API_KEY": "sgamp_other"},
+            "server": lambda: {"AMP_URL": "https://amp.example.com"},
+        }
+
+        for change, apply in changes.items():
+            with self.subTest(change=change):
+                shutil.rmtree(self.directory / "cache", ignore_errors=True)
+                (self.directory / "calls").unlink(missing_ok=True)
+                self.run_complete("projects", [], cwd=workspace / "src")
+                context = apply() or {}
+                self.run_complete("projects", [], cwd=workspace / "src", context=context)
+
+                self.assertEqual(len(self.calls), 2)
+
+    def test_refresh_prunes_entries_past_retention(self) -> None:
+        self.run_complete("projects", [])
+        self.run_complete("skills", {"skills": []})
+        cache = self.directory / "cache" / "amp-completions"
+        old, recent = sorted(cache.iterdir())
+        os.utime(old, (0, 0))
+        stale = time.time() - complete.CACHE_RETENTION_SECONDS + 60
+        os.utime(recent, (stale, stale))
+
+        self.run_complete("tools", [])
+
+        self.assertFalse(old.exists())
+        self.assertTrue(recent.exists())
+
+    def test_cache_does_not_store_access_token(self) -> None:
+        self.run_complete("projects", [], context={"AMP_API_KEY": "sgamp_secret"})
+
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            self.assertNotIn("sgamp_secret", entry.name + entry.read_text())
 
     def test_context_flags_scope_queries_and_cache_entries(self) -> None:
         tools = [{"name": "shell_command"}]

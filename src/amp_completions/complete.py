@@ -17,6 +17,7 @@ QUERY_TIMEOUT_SECONDS = 5
 TOOLS_TIMEOUT_SECONDS = 15
 THREAD_LIMIT = 500
 CACHE_SECONDS = 300
+CACHE_RETENTION_SECONDS = 86_400
 THREAD_CACHE_SECONDS = 30
 COMPLETION_ERRORS = (
     OSError,
@@ -39,9 +40,44 @@ def run_json(amp: str, arguments: list[str], timeout: float = QUERY_TIMEOUT_SECO
     return json.loads(result.stdout)
 
 
+def xdg_directory(variable: str, default: str) -> Path:
+    return Path(os.environ.get(variable) or Path.home() / default)
+
+
 def cache_directory() -> Path:
-    root = os.environ.get("XDG_CACHE_HOME") or Path.home() / ".cache"
-    return Path(root) / "amp-completions"
+    return xdg_directory("XDG_CACHE_HOME", ".cache") / "amp-completions"
+
+
+def workspace_roots() -> list[Path]:
+    cwd = Path.cwd()
+    git_root = next((path for path in (cwd, *cwd.parents) if (path / ".git").exists()), cwd)
+    return sorted({cwd, git_root})
+
+
+def amp_state() -> list[object]:
+    # NOTE: Amp writes these only on login, account switch, or settings edits.
+    directories = [
+        xdg_directory("XDG_DATA_HOME", ".local/share") / "amp",
+        xdg_directory("XDG_CONFIG_HOME", ".config") / "amp",
+        *(root / ".amp" for root in workspace_roots()),
+    ]
+    files = []
+    for directory in directories:
+        try:
+            with os.scandir(directory) as entries:
+                files.extend(entry.path for entry in entries if entry.is_file())
+        except OSError:
+            continue
+    if settings_file := os.environ.get("AMP_SETTINGS_FILE"):
+        files.append(settings_file)
+    state: list[object] = [os.environ.get(name) for name in ("AMP_API_KEY", "AMP_URL")]
+    for file in sorted(files):
+        try:
+            stat = os.stat(file)
+        except OSError:
+            continue
+        state.append([file, stat.st_mtime_ns, stat.st_size])
+    return state
 
 
 def read_cache(path: Path) -> tuple[float, object] | None:
@@ -58,7 +94,18 @@ def write_cache(path: Path, response: object) -> None:
             json.dump(response, file)
         os.replace(file.name, path)
     except OSError:
-        pass
+        return
+    prune_cache(path.parent)
+
+
+def prune_cache(directory: Path) -> None:
+    cutoff = time.time() - CACHE_RETENTION_SECONDS
+    for entry in directory.iterdir():
+        try:
+            if entry.stat().st_mtime < cutoff:
+                entry.unlink()
+        except OSError:
+            continue
 
 
 def cached_json(
@@ -67,7 +114,7 @@ def cached_json(
     max_age: float = CACHE_SECONDS,
     timeout: float = QUERY_TIMEOUT_SECONDS,
 ) -> object:
-    key = json.dumps([amp, os.getcwd(), arguments])
+    key = json.dumps([amp, os.getcwd(), arguments, amp_state()])
     path = cache_directory() / hashlib.sha256(key.encode()).hexdigest()
     cached = read_cache(path)
     if cached is not None and time.time() - cached[0] < max_age:

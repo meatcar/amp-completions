@@ -104,7 +104,9 @@ For account-specific values, the generated spec invokes `amp-completions`, which
 converts Amp's JSON listing commands into Carapace candidates. It narrows
 queries by flags already on the command line, such as `--workspace` or
 `--mode`, and caches results under `${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions`
-for 30 seconds (threads) or 5 minutes (everything else).
+for 30 seconds (threads) or 5 minutes (everything else). Logging in, switching
+accounts, changing `AMP_API_KEY` or `AMP_URL`, or editing Amp settings starts
+a fresh cache.
 
 The pinned Amp executable comes from
 [`llm-agents.nix`](https://github.com/numtide/llm-agents.nix). Generated output
