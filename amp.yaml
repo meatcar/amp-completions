@@ -68,6 +68,9 @@ commands:
     description: "Remove a saved Amp account"
     flags:
       "--all": "Remove all saved CLI accounts across all servers"
+    completion:
+      positional:
+        - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" accounts)"]
   - name: "account"
     description: "Manage saved Amp accounts"
     commands:
@@ -77,6 +80,9 @@ commands:
           "--json": "Output as JSON"
       - name: "switch"
         description: "Choose the account for future CLI commands"
+        completion:
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" accounts)"]
   - name: "login"
     description: "Log in to Amp"
   - name: "orb"
@@ -286,17 +292,24 @@ commands:
             flags:
               "--runner-id=": "The runner to change; required when several are running"
             completion:
+              flag:
+                "runner-id": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" runners)"]
               positionalany: ["$directories"]
           - name: "remove"
             description: "Stop serving one or more directories added with `amp runner dirs add`"
             flags:
               "--runner-id=": "The runner to change; required when several are running"
             completion:
+              flag:
+                "runner-id": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" runners)"]
               positionalany: ["$directories"]
           - name: "list"
             description: "List the directories a running runner serves"
             flags:
               "--runner-id=": "The runner to inspect; required when several are running"
+            completion:
+              flag:
+                "runner-id": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" runners)"]
       - name: "desktop"
         description: "Inspect or allow desktop sharing for --no-tui --desktop runners"
         commands:
@@ -1460,6 +1473,8 @@ commands:
         completion:
           flag:
             "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" secrets)"]
       - name: "get"
         description: "Get an environment variable value (secret values are never returned)"
         flags:
@@ -1471,6 +1486,8 @@ commands:
         completion:
           flag:
             "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" secrets)"]
       - name: "set"
         description: "Add or update a secret or environment variable"
         flags:
@@ -1487,6 +1504,8 @@ commands:
           flag:
             "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
             "data-file": ["$files"]
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" secrets)"]
       - name: "delete"
         aliases: ["rm"]
         description: "Delete a secret or environment variable"
@@ -1501,6 +1520,8 @@ commands:
         completion:
           flag:
             "project": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
+          positional:
+            - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" secrets)"]
   - name: "svc"
     description: "Call connected services and MCP servers through Amp"
     flags:

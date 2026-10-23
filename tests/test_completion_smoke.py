@@ -1,6 +1,7 @@
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -19,15 +20,19 @@ class CompletionSmokeTest(unittest.TestCase):
             helper_directory = config_directory / "carapace" / "bin"
             helper_directory.mkdir()
             helper = helper_directory / "amp-completions"
+            # NOTE: Python, not sh: dash drops names like C_FLAG_PERMA-ORB from its environment.
             helper.write_text(
-                "#!/bin/sh\n"
-                "case $1 in\n"
-                "  threads) printf 'T-123\\tExample thread\\n' ;;\n"
-                "  projects) printf 'meatcar/amp-completions\\tExample project\\n' ;;\n"
-                "  tools) printf 'shell_command\\tRun a command\\n' ;;\n"
-                "  skills) printf 'tdd\\tTest-driven development\\n' ;;\n"
-                "  local-mcp-servers) printf 'playwright\\tWorkspace settings\\n' ;;\n"
-                "esac\n"
+                f"#!{sys.executable}\n"
+                "import os, sys\n"
+                "flags = sorted(f'{k[7:]}:{v}' for k, v in os.environ.items() if k.startswith('C_FLAG_'))\n"
+                "print({\n"
+                "    'threads': 'T-123\\tExample thread',\n"
+                "    'projects': 'meatcar/amp-completions\\tExample project',\n"
+                "    'tools': 'shell_command\\tRun a command',\n"
+                "    'skills': 'tdd\\tTest-driven development',\n"
+                "    'local-mcp-servers': 'playwright\\tWorkspace settings',\n"
+                "    'secrets': '\\n'.join(flags),\n"
+                "}.get(sys.argv[1], ''))\n"
             )
             helper.chmod(0o755)
             environment = os.environ.copy()
@@ -82,6 +87,13 @@ class CompletionSmokeTest(unittest.TestCase):
 
     def test_completes_dynamic_tool_names(self) -> None:
         self.assertIn("shell_command", self.complete("tools", "show", ""))
+
+    def test_passes_typed_scope_flags_to_the_helper(self) -> None:
+        self.assertEqual(
+            self.complete("secrets", "get", "--perma-orb", "acme/box", ""),
+            {"PERMA-ORB:acme/box"},
+        )
+        self.assertEqual(self.complete("secrets", "get", "--project", ""), {"PROJECT: "})
 
     def test_completes_static_enum_values(self) -> None:
         self.assertEqual(

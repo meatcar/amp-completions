@@ -47,21 +47,27 @@ ROUTERS = Documented(r": (?P<values>[^:]+)$")
 
 FILES = Paths("$files")
 DIRECTORIES = Paths("$directories")
+ACCOUNTS = Resource("accounts")
 DOMAINS = Resource("domains")
 LOCAL_MCP_SERVERS = Resource("local-mcp-servers")
 MODEL_PROVIDERS = Resource("model-providers")
 PROJECTS = Resource("projects")
 REMOTE_MCP_SERVERS = Resource("remote-mcp-servers")
+RUNNERS = Resource("runners")
+SECRETS = Resource("secrets")
 SKILLS = Resource("skills")
 THREADS = Resource("threads")
 TOOLS = Resource("tools")
 RESOURCES = frozenset(
     {
+        ACCOUNTS,
         DOMAINS,
         LOCAL_MCP_SERVERS,
         MODEL_PROVIDERS,
         PROJECTS,
         REMOTE_MCP_SERVERS,
+        RUNNERS,
+        SECRETS,
         SKILLS,
         THREADS,
         TOOLS,
@@ -74,14 +80,13 @@ ORB_SIZES = Literals(
 AGENT_MODES = Literals(("low", "medium", "high", "ultra"))
 NEW_NAME = Exempt("new name")
 NOT_LISTED = Exempt("Amp has no JSON listing for these values")
-SHAPE_UNKNOWN = Exempt("JSON listing shape not observed in fixtures")
 
 # NOTE: Lookup order: EXACT, FLAG_DEFAULTS, PLACEHOLDER_DEFAULTS, then *-file flags.
 EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "--attach"): FILES,
     ("amp", "--executor"): Literals(("local", "orb")),
     ("amp", "--runner-dir"): Exempt("directory on a remote runner"),
-    ("amp", "account", "switch", "<account>"): SHAPE_UNKNOWN,
+    ("amp", "account", "switch", "<account>"): ACCOUNTS,
     ("amp", "clone", "<repository>"): Exempt("repository reference"),
     ("amp", "clone", "<target-dir>"): DIRECTORIES,
     ("amp", "completions", "<shell>"): Literals(("bash", "zsh", "fish", "pwsh")),
@@ -94,7 +99,7 @@ EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "domains", "add", "<hostname>"): Exempt("new hostname"),
     ("amp", "domains", "check", "<hostname>"): DOMAINS,
     ("amp", "domains", "remove", "<hostname>"): DOMAINS,
-    ("amp", "logout", "<account>"): SHAPE_UNKNOWN,
+    ("amp", "logout", "<account>"): ACCOUNTS,
     ("amp", "mcp", "add", "<args>"): Exempt("server command arguments"),
     ("amp", "mcp", "add", "<name>"): NEW_NAME,
     ("amp", "mcp", "approve", "<name>"): LOCAL_MCP_SERVERS,
@@ -137,10 +142,10 @@ EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "runner", "desktop", "allow", "<permission>"): Exempt("permission names not documented"),
     ("amp", "runner", "dirs", "add", "<paths>"): DIRECTORIES,
     ("amp", "runner", "dirs", "remove", "<paths>"): DIRECTORIES,
-    ("amp", "secrets", "delete", "<name>"): SHAPE_UNKNOWN,
-    ("amp", "secrets", "get", "<name>"): SHAPE_UNKNOWN,
-    ("amp", "secrets", "history", "<name>"): SHAPE_UNKNOWN,
-    ("amp", "secrets", "set", "<name>"): NEW_NAME,
+    ("amp", "secrets", "delete", "<name>"): SECRETS,
+    ("amp", "secrets", "get", "<name>"): SECRETS,
+    ("amp", "secrets", "history", "<name>"): SECRETS,
+    ("amp", "secrets", "set", "<name>"): SECRETS,
     ("amp", "skill", "add", "<source>"): FILES,
     ("amp", "skill", "info", "<name>"): SKILLS,
     ("amp", "skill", "remove", "<name>"): SKILLS,
@@ -191,7 +196,7 @@ FLAG_DEFAULTS: dict[str, Rule] = {
     "reasoning-effort": Literals(("none", "minimal", "low", "medium", "high", "xhigh", "max")),
     "remote": Exempt("new Git remote name"),
     "repository-mode": Literals(("github", "mapped")),
-    "runner-id": SHAPE_UNKNOWN,
+    "runner-id": RUNNERS,
     "settings-file": FILES,
     "ship-behavior": Literals(("ship", "push-to-branch", "custom")),
     "subject-scope": Documented(r"\((?P<values>[^();]+); default"),

@@ -612,7 +612,7 @@
       ]
     },
     "amp account switch <account>": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "accounts"
     },
     "amp boxes cp --deployment": {
       "exempt": "Amp has no JSON listing for these values"
@@ -870,7 +870,7 @@
       "exempt": "free-form value"
     },
     "amp logout <account>": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "accounts"
     },
     "amp mcp add --env": {
       "exempt": "free-form value"
@@ -1459,16 +1459,16 @@
       "exempt": "permission names not documented"
     },
     "amp runner dirs add --runner-id": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "runners"
     },
     "amp runner dirs add <paths>": {
       "paths": "$directories"
     },
     "amp runner dirs list --runner-id": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "runners"
     },
     "amp runner dirs remove --runner-id": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "runners"
     },
     "amp runner dirs remove <paths>": {
       "paths": "$directories"
@@ -1483,7 +1483,7 @@
       "resource": "projects"
     },
     "amp secrets delete <name>": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "secrets"
     },
     "amp secrets get --box": {
       "exempt": "free-form value"
@@ -1495,7 +1495,7 @@
       "resource": "projects"
     },
     "amp secrets get <name>": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "secrets"
     },
     "amp secrets history --box": {
       "exempt": "free-form value"
@@ -1507,7 +1507,7 @@
       "resource": "projects"
     },
     "amp secrets history <name>": {
-      "exempt": "JSON listing shape not observed in fixtures"
+      "resource": "secrets"
     },
     "amp secrets list --box": {
       "exempt": "free-form value"
@@ -1531,7 +1531,7 @@
       "resource": "projects"
     },
     "amp secrets set <name>": {
-      "exempt": "new name"
+      "resource": "secrets"
     },
     "amp skill add --name": {
       "exempt": "new name"

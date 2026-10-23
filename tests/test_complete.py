@@ -8,7 +8,7 @@ import time
 import unittest
 from pathlib import Path
 
-from amp_completions import complete
+from amp_completions import complete, completions
 
 
 ROOT = Path(__file__).parents[1]
@@ -193,6 +193,19 @@ class CompleteCliTest(unittest.TestCase):
                 [{"hostname": "docs.example.com", "status": "active"}],
                 "docs.example.com\tactive\n",
             ),
+            "accounts": (
+                {
+                    "accounts": [
+                        {"email": "me@example.com", "userID": "user_1"},
+                        {"email": None, "userID": "user_2"},
+                    ]
+                },
+                "me@example.com\tuser_1\nuser_2\n",
+            ),
+            "runners": (
+                {"runners": [{"id": "garage", "directories": ["/srv"]}, {"runnerID": "attic"}]},
+                "garage\nattic\n",
+            ),
         }
 
         for resource, (response, expected) in cases.items():
@@ -360,6 +373,17 @@ class CompleteCliTest(unittest.TestCase):
             "github\thttps://api.github.com/mcp\nMCP-2\tLinear MCP\n",
         )
 
+    def test_current_project_remote_mcp_servers_use_carapace_flag_name(self) -> None:
+        result = self.run_complete(
+            "remote-mcp-servers",
+            responses={
+                "mcp remote list --current-project --json": {"servers": [{"name": "github"}]}
+            },
+            context={"C_FLAG_CURRENT-PROJECT": "true"},
+        )
+
+        self.assertEqual(result.stdout, "github\n")
+
     def test_workspace_model_providers_use_workspace_keys(self) -> None:
         result = self.run_complete(
             "model-providers",
@@ -370,6 +394,38 @@ class CompleteCliTest(unittest.TestCase):
         )
 
         self.assertEqual(result.stdout, "MP-9\topenai\n")
+
+    def test_secret_names_use_the_typed_scope_and_never_cache_values(self) -> None:
+        secrets = [{"name": "API_TOKEN", "value": "hunter2"}]
+        scopes = {
+            "C_FLAG_USER": ("true", "secrets list --user --json"),
+            "C_FLAG_PROJECT": ("acme/app", "secrets list --project acme/app --json"),
+            "C_FLAG_PERMA-ORB": ("acme/box", "secrets list --perma-orb acme/box --json"),
+            "bare C_FLAG_PROJECT": (" ", "secrets list --project --json"),
+        }
+
+        for flag, (value, query) in scopes.items():
+            with self.subTest(flag=flag):
+                shutil.rmtree(self.directory / "cache", ignore_errors=True)
+                (self.directory / "calls").unlink(missing_ok=True)
+                variable = flag.removeprefix("bare ")
+                result = self.run_complete("secrets", secrets, context={variable: value})
+
+                self.assertEqual(result.stdout, "API_TOKEN\n")
+                self.assertEqual(self.calls, [query])
+                for entry in (self.directory / "cache" / "amp-completions").iterdir():
+                    self.assertNotIn("hunter2", entry.read_text())
+
+    def test_secret_names_need_a_scope(self) -> None:
+        result = self.run_complete("secrets", [{"name": "API_TOKEN"}])
+
+        self.assertEqual(result.stdout, "")
+        self.assertEqual(self.calls, [])
+
+    def test_helper_serves_every_generated_resource(self) -> None:
+        self.assertEqual(
+            set(complete.COMPLETERS), {resource.name for resource in completions.RESOURCES}
+        )
 
     def test_hides_amp_errors_from_the_shell(self) -> None:
         result = self.run_complete("threads", [], amp_exit_code=1)

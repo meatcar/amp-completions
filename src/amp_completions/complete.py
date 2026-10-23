@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from pathlib import Path
 
 
@@ -80,18 +81,24 @@ def amp_state() -> list[object]:
     return state
 
 
-def read_cache(path: Path) -> tuple[float, object] | None:
+def cache_path(amp: str, resource: str) -> Path:
+    flags = sorted((name, value) for name, value in os.environ.items() if name.startswith("C_FLAG_"))
+    key = json.dumps([amp, os.getcwd(), resource, flags, amp_state()])
+    return cache_directory() / hashlib.sha256(key.encode()).hexdigest()
+
+
+def read_cache(path: Path) -> tuple[float, str] | None:
     try:
-        return path.stat().st_mtime, json.loads(path.read_text())
-    except (OSError, json.JSONDecodeError):
+        return path.stat().st_mtime, path.read_text()
+    except OSError:
         return None
 
 
-def write_cache(path: Path, response: object) -> None:
+def write_cache(path: Path, output: str) -> None:
     try:
         path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile("w", dir=path.parent, delete=False) as file:
-            json.dump(response, file)
+            file.write(output)
         os.replace(file.name, path)
     except OSError:
         return
@@ -108,29 +115,29 @@ def prune_cache(directory: Path) -> None:
             continue
 
 
-def cached_json(
-    amp: str,
-    arguments: list[str],
-    max_age: float = CACHE_SECONDS,
-    timeout: float = QUERY_TIMEOUT_SECONDS,
-) -> object:
-    key = json.dumps([amp, os.getcwd(), arguments, amp_state()])
-    path = cache_directory() / hashlib.sha256(key.encode()).hexdigest()
+def cached_output(path: Path, max_age: float, compute: Callable[[], str]) -> str:
     cached = read_cache(path)
     if cached is not None and time.time() - cached[0] < max_age:
         return cached[1]
     try:
-        response = run_json(amp, arguments, timeout)
+        output = compute()
     except COMPLETION_ERRORS:
-        if cached is None:
-            raise
-        return cached[1]
-    write_cache(path, response)
-    return response
+        return "" if cached is None else cached[1]
+    write_cache(path, output)
+    return output
+
+
+def flag_variable(flag: str) -> str:
+    # NOTE: Carapace keeps dashes, e.g. C_FLAG_CURRENT-PROJECT, and passes a bare optional flag as " ".
+    return f"C_FLAG_{flag.upper()}"
 
 
 def context(flag: str) -> str:
-    return os.environ.get(f"C_FLAG_{flag}", "")
+    return os.environ.get(flag_variable(flag), "").strip()
+
+
+def enabled(flag: str) -> bool:
+    return context(flag) == "true"
 
 
 def text(value: object) -> str:
@@ -139,6 +146,10 @@ def text(value: object) -> str:
     if not isinstance(value, str):
         raise TypeError(f"expected text, got {type(value).__name__}")
     return value
+
+
+def first_text(record: dict[str, object], *fields: str) -> str:
+    return next((value for field in fields if (value := text(record.get(field)))), "")
 
 
 def candidate(value: object, description: object = None) -> tuple[str, str]:
@@ -154,8 +165,14 @@ def records(response: object) -> list[dict[str, object]]:
     return response
 
 
+def listing(response: object, key: str) -> list[dict[str, object]]:
+    if not isinstance(response, dict):
+        raise TypeError("expected an object")
+    return records(response[key])
+
+
 def complete_threads(amp: str) -> list[tuple[str, str]]:
-    threads = cached_json(
+    threads = run_json(
         amp,
         [
             "threads",
@@ -167,7 +184,6 @@ def complete_threads(amp: str) -> list[tuple[str, str]]:
             "list",
             "--json",
         ],
-        THREAD_CACHE_SECONDS,
     )
     return [candidate(thread["id"], thread.get("title")) for thread in records(threads)]
 
@@ -178,44 +194,41 @@ def complete_projects(amp: str) -> list[tuple[str, str]]:
             f"{text(project['namespace'])}/{text(project['name'])}",
             project.get("repositoryURL"),
         )
-        for project in records(cached_json(amp, ["projects", "list", "--json"]))
+        for project in records(run_json(amp, ["projects", "list", "--json"]))
     ]
 
 
 def complete_tools(amp: str) -> list[tuple[str, str]]:
-    mode = context("MODE")
+    mode = context("mode")
     query = ["tools", "list", *(["--mode", mode] if mode else []), "--json"]
     return [
         candidate(tool["name"], tool.get("description"))
-        for tool in records(cached_json(amp, query, timeout=TOOLS_TIMEOUT_SECONDS))
+        for tool in records(run_json(amp, query, TOOLS_TIMEOUT_SECONDS))
     ]
 
 
 def complete_skills(amp: str) -> list[tuple[str, str]]:
-    response = cached_json(amp, ["skill", "list", "--json"])
-    if not isinstance(response, dict):
-        raise TypeError("expected an object")
     return [
         candidate(skill["name"], skill.get("description"))
-        for skill in records(response["skills"])
+        for skill in listing(run_json(amp, ["skill", "list", "--json"]), "skills")
     ]
 
 
 def complete_mcp_servers(amp: str, *, remote: bool) -> list[tuple[str, str]]:
     return [
         candidate(server["name"], server.get("source"))
-        for server in records(cached_json(amp, ["mcp", "list", "--json"]))
+        for server in records(run_json(amp, ["mcp", "list", "--json"]))
         if (server.get("source") == "account") == remote
     ]
 
 
 def remote_mcp_scope() -> list[str]:
-    for flag in ("PROJECT", "WORKSPACE"):
+    for flag in ("project", "workspace"):
         if value := context(flag):
-            return [f"--{flag.lower()}", value]
-    for flag in ("PERSONAL", "CURRENT_PROJECT"):
-        if context(flag) == "true":
-            return [f"--{flag.lower().replace('_', '-')}"]
+            return [f"--{flag}", value]
+    for flag in ("personal", "current-project"):
+        if enabled(flag):
+            return [f"--{flag}"]
     return []
 
 
@@ -223,11 +236,8 @@ def complete_remote_mcp_servers(amp: str) -> list[tuple[str, str]]:
     scope = remote_mcp_scope()
     if not scope:
         return complete_mcp_servers(amp, remote=True)
-    response = cached_json(amp, ["mcp", "remote", "list", *scope, "--json"])
-    if not isinstance(response, dict):
-        raise TypeError("expected an object")
     values = []
-    for server in records(response["servers"]):
+    for server in listing(run_json(amp, ["mcp", "remote", "list", *scope, "--json"]), "servers"):
         name = text(server["name"])
         if any(character.isspace() for character in name):
             values.append(candidate(server["id"], name))
@@ -238,8 +248,8 @@ def complete_remote_mcp_servers(amp: str) -> list[tuple[str, str]]:
 
 def complete_model_providers(amp: str) -> list[tuple[str, str]]:
     values = []
-    scope = ["--workspace"] if context("WORKSPACE") == "true" else []
-    providers = cached_json(amp, ["config", "model-providers", "list", *scope, "--json"])
+    scope = ["--workspace"] if enabled("workspace") else []
+    providers = run_json(amp, ["config", "model-providers", "list", *scope, "--json"])
     for provider in records(providers):
         name = text(provider.get("name"))
         provider_type = text(provider.get("type"))
@@ -253,30 +263,77 @@ def complete_model_providers(amp: str) -> list[tuple[str, str]]:
 
 
 def complete_domain_scope(amp: str, scope: str) -> list[tuple[str, str]]:
-    try:
-        domains = cached_json(amp, ["domains", "list", scope, "--json"])
-        return [
-            candidate(domain["hostname"], domain.get("status")) for domain in records(domains)
-        ]
-    except COMPLETION_ERRORS:
-        return []
+    domains = run_json(amp, ["domains", "list", scope, "--json"])
+    return [candidate(domain["hostname"], domain.get("status")) for domain in records(domains)]
 
 
 def complete_domains(amp: str) -> list[tuple[str, str]]:
-    scopes = [
-        f"--{flag.lower()}" for flag in ("USER", "WORKSPACE") if context(flag) == "true"
-    ] or ["--user", "--workspace"]
+    scopes = [f"--{flag}" for flag in ("user", "workspace") if enabled(flag)] or [
+        "--user",
+        "--workspace",
+    ]
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        results = executor.map(lambda scope: complete_domain_scope(amp, scope), scopes)
-        return [value for values in results for value in values]
+        futures = [executor.submit(complete_domain_scope, amp, scope) for scope in scopes]
+    values = []
+    errors = []
+    for future in futures:
+        try:
+            values.extend(future.result())
+        except COMPLETION_ERRORS as error:
+            errors.append(error)
+    if len(errors) == len(futures):
+        raise errors[0]
+    return values
+
+
+def complete_accounts(amp: str) -> list[tuple[str, str]]:
+    values = []
+    for account in listing(run_json(amp, ["account", "list", "--json"]), "accounts"):
+        user_id = first_text(account, "userID", "userId", "id")
+        email = text(account.get("email"))
+        values.append(candidate(email, user_id) if email else candidate(user_id))
+    return values
+
+
+def complete_runners(amp: str) -> list[tuple[str, str]]:
+    return [
+        candidate(first_text(runner, "id", "runnerID", "runnerId"))
+        for runner in listing(run_json(amp, ["runner", "list", "--json"]), "runners")
+    ]
+
+
+def secrets_scope() -> list[str] | None:
+    for flag in ("user", "workspace"):
+        if enabled(flag):
+            return [f"--{flag}"]
+    if machine := context("perma-orb"):
+        deployment = context("deployment")
+        return ["--perma-orb", machine, *(["--deployment", deployment] if deployment else [])]
+    if flag_variable("project") in os.environ:
+        project = context("project")
+        return ["--project", *([project] if project else [])]
+    return None
+
+
+def complete_secrets(amp: str) -> list[tuple[str, str]]:
+    scope = secrets_scope()
+    if scope is None:
+        return []
+    return [
+        candidate(secret["name"])
+        for secret in records(run_json(amp, ["secrets", "list", *scope, "--json"]))
+    ]
 
 
 COMPLETERS = {
+    "accounts": complete_accounts,
     "domains": complete_domains,
     "local-mcp-servers": lambda amp: complete_mcp_servers(amp, remote=False),
     "model-providers": complete_model_providers,
     "projects": complete_projects,
     "remote-mcp-servers": complete_remote_mcp_servers,
+    "runners": complete_runners,
+    "secrets": complete_secrets,
     "skills": complete_skills,
     "threads": complete_threads,
     "tools": complete_tools,
@@ -309,13 +366,15 @@ def write_output(output: str) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("resource", choices=COMPLETERS)
-    arguments = parser.parse_args()
+    resource = parser.parse_args().resource
 
-    try:
-        amp = os.environ.get("AMP_BIN", DEFAULT_AMP)
-        output = render(COMPLETERS[arguments.resource](amp))
-    except COMPLETION_ERRORS:
-        return
+    executable = os.environ.get("AMP_BIN", DEFAULT_AMP)
+    max_age = THREAD_CACHE_SECONDS if resource == "threads" else CACHE_SECONDS
+    output = cached_output(
+        cache_path(executable, resource),
+        max_age,
+        lambda: render(COMPLETERS[resource](executable)),
+    )
     write_output(output)
 
 

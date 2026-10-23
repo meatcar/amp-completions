@@ -7,8 +7,9 @@ generated from Amp's own help output and distributed as a checked-in
 It works with Bash, Zsh, Fish, Nushell, PowerShell, and other shells supported
 by Carapace. Commands, flags, fixed values, and filesystem arguments are
 generated statically. Completing threads, projects, tools, skills, MCP servers,
-model-provider connections, and domains runs a small helper that calls Amp, so
-those completions reflect the resources available to the signed-in user.
+model-provider connections, domains, accounts, runners, and secret names runs a
+small helper that calls Amp, so those completions reflect the resources
+available to the signed-in user.
 
 ```text
 amp th<Tab>        → thread, threads
@@ -103,10 +104,14 @@ it as a warning and the checks fail until the rule is fixed.
 For account-specific values, the generated spec invokes `amp-completions`, which
 converts Amp's JSON listing commands into Carapace candidates. It narrows
 queries by flags already on the command line, such as `--workspace` or
-`--mode`, and caches results under `${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions`
-for 30 seconds (threads) or 5 minutes (everything else). Logging in, switching
-accounts, changing `AMP_API_KEY` or `AMP_URL`, or editing Amp settings starts
-a fresh cache.
+`--mode`, and caches the rendered candidates under
+`${XDG_CACHE_HOME:-$HOME/.cache}/amp-completions` for 30 seconds (threads) or
+5 minutes (everything else). Logging in, switching accounts, changing
+`AMP_API_KEY` or `AMP_URL`, or editing Amp settings starts a fresh cache. Secret
+names complete only after a scope flag such as `--user` or `--workspace`; values
+are never requested. Carapace passes only the current command's own flags, so
+persistent flags (`--settings-file`) and flags given to a parent command do not
+narrow results.
 
 The pinned Amp executable comes from
 [`llm-agents.nix`](https://github.com/numtide/llm-agents.nix). Generated output
