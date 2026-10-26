@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1792972877-g78a0d4",
+  "amp_version": "0.0.1793001982-gb50f4b",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -502,6 +502,7 @@
     "amp orb portal --take-over",
     "amp orb portal --thread",
     "amp orb portal --title",
+    "amp orb provider --allow-multiple",
     "amp orb provider --amp-url",
     "amp orb provider --token",
     "amp orb redact-output --thread",
