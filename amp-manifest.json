@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793131239-gb51991",
+  "amp_version": "0.0.1793217669-gb7b7f6",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -99,6 +99,9 @@
     ],
     "amp update": [
       "up"
+    ],
+    "amp web-profile delete": [
+      "rm"
     ]
   },
   "command_paths": [
@@ -282,8 +285,12 @@
     "amp version",
     "amp web-profile",
     "amp web-profile create",
+    "amp web-profile delete",
     "amp web-profile list",
-    "amp web-profile status"
+    "amp web-profile none",
+    "amp web-profile rename",
+    "amp web-profile status",
+    "amp web-profile use"
   ],
   "flag_paths": [
     "amp --amp-env",
@@ -699,7 +706,10 @@
     "amp usage --end",
     "amp usage --start",
     "amp version --help",
-    "amp web-profile status --thread"
+    "amp web-profile delete --yes",
+    "amp web-profile none --thread",
+    "amp web-profile status --thread",
+    "amp web-profile use --thread"
   ],
   "manifest_version": 1,
   "persistent_flag_paths": [
