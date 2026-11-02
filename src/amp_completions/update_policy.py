@@ -144,24 +144,42 @@ def signature_changes(base: dict, candidate: dict) -> list[str]:
     ]
 
 
-def lost_completions(base: dict, candidate: dict) -> list[str]:
+def argument_names(signature: str) -> list[str]:
+    return [token.strip("<>[]").removesuffix("...") for token in signature.split()]
+
+
+def field_pairs(base: dict, candidate: dict) -> list[tuple[str, dict, dict]]:
+    old_completions = base["field_completions"]
     new_completions = candidate["field_completions"]
+    pairs = [
+        (key, old, new_completions[key])
+        for key, old in old_completions.items()
+        if key in new_completions
+    ]
+    old_signatures = base["argument_signatures"]
+    new_signatures = candidate["argument_signatures"]
+    for path in set(old_signatures) & set(new_signatures):
+        renamed = zip(argument_names(old_signatures[path]), argument_names(new_signatures[path]))
+        for old_name, new_name in renamed:
+            old_key, new_key = f"{path} <{old_name}>", f"{path} <{new_name}>"
+            if old_name != new_name and old_key in old_completions and new_key in new_completions:
+                pairs.append((f"{old_key} -> <{new_name}>", old_completions[old_key], new_completions[new_key]))
+    return sorted(pairs, key=lambda pair: pair[0])
+
+
+def lost_completions(base: dict, candidate: dict) -> list[str]:
     return [
         f"completion became exempt: {key} (was {completion_kind(old)})"
-        for key, old in sorted(base["field_completions"].items())
-        if (new := new_completions.get(key)) is not None
-        and completion_kind(old) != "exempt"
-        and completion_kind(new) == "exempt"
+        for key, old, new in field_pairs(base, candidate)
+        if completion_kind(old) != "exempt" and completion_kind(new) == "exempt"
     ]
 
 
 def completion_losses(base: dict, candidate: dict) -> list[str]:
     reasons = []
-    new_completions = candidate["field_completions"]
-    for key, old in sorted(base["field_completions"].items()):
-        new = new_completions.get(key)
+    for key, old, new in field_pairs(base, candidate):
         old_kind = completion_kind(old)
-        if new is None or old_kind == "exempt" or completion_kind(new) == "exempt":
+        if old_kind == "exempt" or completion_kind(new) == "exempt":
             continue
         new_kind = completion_kind(new)
         if new_kind != old_kind:

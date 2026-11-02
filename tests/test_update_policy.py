@@ -120,6 +120,23 @@ class UpdatePolicyTest(unittest.TestCase):
             result.reasons, ("completion became exempt: amp threads <thread> (was resource)",)
         )
 
+    def test_blocks_renamed_argument_that_drops_completion_to_free_form(self) -> None:
+        completions = {
+            key: value for key, value in FIELD_COMPLETIONS.items() if key != "amp threads <thread>"
+        }
+        result = update_policy.classify_update(
+            BASE_MANIFEST,
+            candidate(
+                argument_signatures={"amp threads": "[url]"},
+                field_completions={**completions, "amp threads <url>": {"exempt": "free-form text"}},
+            ),
+        )
+
+        self.assertEqual(result.classification, "review-required")
+        self.assertIn(
+            "completion became exempt: amp threads <thread> -> <url> (was resource)", result.reasons
+        )
+
     def test_accepts_added_completion_values(self) -> None:
         result = update_policy.classify_update(
             BASE_MANIFEST,
