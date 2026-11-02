@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+from __future__ import annotations
+
 import argparse
 import concurrent.futures
 import hashlib
@@ -12,6 +14,8 @@ import time
 from collections import Counter
 from collections.abc import Callable, Iterable
 from pathlib import Path
+from typing import TypeVar
+from urllib.parse import urlsplit
 
 
 DEFAULT_AMP = "amp"
@@ -31,6 +35,7 @@ COMPLETION_ERRORS = (
 )
 
 Candidate = tuple[str, str]
+T = TypeVar("T")
 
 
 class PartialResult(Exception):
@@ -191,9 +196,9 @@ def candidate(value: object, description: object = None) -> tuple[str, str]:
 
 
 def records(response: object) -> list[dict[str, object]]:
-    if not isinstance(response, list) or not all(isinstance(item, dict) for item in response):
-        raise TypeError("expected a list of objects")
-    return response
+    if not isinstance(response, list):
+        raise TypeError("expected a list")
+    return [item for item in response if isinstance(item, dict)]
 
 
 def listing(response: object, key: str) -> list[dict[str, object]]:
@@ -202,7 +207,7 @@ def listing(response: object, key: str) -> list[dict[str, object]]:
     return records(response[key])
 
 
-def collect[T](items: Iterable[T], make: Callable[[T], Candidate]) -> list[Candidate]:
+def collect(items: Iterable[T], make: Callable[[T], Candidate]) -> list[Candidate]:
     values = []
     for item in items:
         try:
@@ -255,15 +260,22 @@ def complete_skills(amp: str) -> list[Candidate]:
     )
 
 
+def remote_mcp_server(server: dict[str, object], description: object) -> Candidate:
+    name = text(server["name"])
+    if any(character.isspace() for character in name):
+        return candidate(server["id"], name)
+    return candidate(name, description)
+
+
 def complete_mcp_servers(amp: str, *, remote: bool) -> list[Candidate]:
-    return collect(
-        (
-            server
-            for server in records(run_json(amp, ["mcp", "list", "--json"]))
-            if (server.get("source") == "account") == remote
-        ),
-        lambda server: candidate(server["name"], server.get("source")),
-    )
+    servers = [
+        server
+        for server in records(run_json(amp, ["mcp", "list", "--json"]))
+        if (server.get("source") == "account") == remote
+    ]
+    if remote:
+        return collect(servers, lambda server: remote_mcp_server(server, server.get("source")))
+    return collect(servers, lambda server: candidate(server["name"], server.get("source")))
 
 
 def remote_mcp_scope() -> list[str]:
@@ -276,11 +288,9 @@ def remote_mcp_scope() -> list[str]:
     return []
 
 
-def remote_mcp_server(server: dict[str, object]) -> Candidate:
-    name = text(server["name"])
-    if any(character.isspace() for character in name):
-        return candidate(server["id"], name)
-    return candidate(name, server.get("url"))
+def url_host(value: object) -> str:
+    # NOTE: Show only the host; MCP URLs can carry tokens in the path or query.
+    return urlsplit(text(value)).hostname or ""
 
 
 def complete_remote_mcp_servers(amp: str) -> list[Candidate]:
@@ -288,7 +298,7 @@ def complete_remote_mcp_servers(amp: str) -> list[Candidate]:
     if not scope:
         return complete_mcp_servers(amp, remote=True)
     servers = listing(run_json(amp, ["mcp", "remote", "list", *scope, "--json"]), "servers")
-    return collect(servers, remote_mcp_server)
+    return collect(servers, lambda server: remote_mcp_server(server, url_host(server.get("url"))))
 
 
 def model_provider(provider: dict[str, object]) -> Candidate:

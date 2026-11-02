@@ -1,3 +1,4 @@
+import ast
 import json
 import os
 import shutil
@@ -159,9 +160,10 @@ class CompleteCliTest(unittest.TestCase):
                         "name": "linear",
                         "source": "account",
                         "connected": True,
-                    }
+                    },
+                    {"id": "MCP-789", "name": "Linear MCP", "source": "account"},
                 ],
-                "linear\taccount\n",
+                "linear\taccount\nMCP-789\tLinear MCP\n",
             ),
             "local-mcp-servers": (
                 [
@@ -240,7 +242,7 @@ class CompleteCliTest(unittest.TestCase):
                 {"namespace": "meatcar", "name": "amp"},
             ],
             "runners": {"runners": [{"id": 7}, {"name": "no id"}, {"id": "garage"}]},
-            "secrets": [{"key": "OLD_SHAPE"}, {"name": "API_TOKEN"}],
+            "secrets": [{"key": "OLD_SHAPE"}, "API_OLD", {"name": "API_TOKEN"}],
         }
         expected = {
             "tools": "oracle\n",
@@ -442,7 +444,11 @@ class CompleteCliTest(unittest.TestCase):
                 "mcp remote list --project acme/app --json": {
                     "action": "list-servers",
                     "servers": [
-                        {"id": "MCP-1", "name": "github", "url": "https://api.github.com/mcp"},
+                        {
+                            "id": "MCP-1",
+                            "name": "github",
+                            "url": "https://api.github.com/mcp/sk-path-token?key=sk-query",
+                        },
                         {"id": "MCP-2", "name": "Linear MCP", "url": "https://mcp.linear.app"},
                     ],
                 }
@@ -452,8 +458,10 @@ class CompleteCliTest(unittest.TestCase):
 
         self.assertEqual(
             result.stdout,
-            "github\thttps://api.github.com/mcp\nMCP-2\tLinear MCP\n",
+            "github\tapi.github.com\nMCP-2\tLinear MCP\n",
         )
+        for entry in (self.directory / "cache" / "amp-completions").iterdir():
+            self.assertNotIn("sk-", entry.read_text())
 
     def test_current_project_remote_mcp_servers_use_carapace_flag_name(self) -> None:
         result = self.run_complete(
@@ -515,6 +523,12 @@ class CompleteCliTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0)
         self.assertEqual(result.stdout, "")
         self.assertEqual(result.stderr, "")
+
+
+class HelperSourceTest(unittest.TestCase):
+    def test_installed_helper_parses_on_python_3_9(self) -> None:
+        # NOTE: `make install` runs the helper with the system python3, not the devshell's.
+        ast.parse(Path(complete.__file__).read_text(), feature_version=(3, 9))
 
 
 class QueryTimeoutTest(unittest.TestCase):
