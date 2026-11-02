@@ -101,6 +101,15 @@ class RenderTest(unittest.TestCase):
             rendered.endswith(f"positional:\n            - {json.dumps([helper('threads')])}\n")
         )
 
+    def test_keeps_gap_before_completed_variadic_positional(self) -> None:
+        rendered = generate.render(tree(("future label", [], ["<label>", "[threads...]"])), "1.2.3")
+
+        self.assertIn(
+            "positional:\n            - []\n"
+            f"          positionalany: {json.dumps([helper('threads')])}",
+            rendered,
+        )
+
     def test_renders_delimited_literals_as_unique_lists(self) -> None:
         rendered = generate.render(tree(("threads new", ["--features <value>"], [])), "1.2.3")
 

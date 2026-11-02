@@ -46,9 +46,10 @@ def positional_values(
         for argument, completion in positionals
         if argument.variadic
     ]
-    while fixed and not fixed[-1]:
+    rest = variadic[0] if variadic else []
+    while fixed and not fixed[-1] and not rest:
         fixed.pop()
-    return fixed, variadic[0] if variadic else []
+    return fixed, rest
 
 
 def emit_command(
