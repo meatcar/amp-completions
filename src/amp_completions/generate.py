@@ -18,7 +18,7 @@ def emit_mapping(lines: list[str], indent: int, name: str, values: list[tuple[st
 
 def dynamic_completion(resource: str) -> str:
     helper = '"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions"'
-    return f"$sh({helper} {resource})"
+    return f"$bash({helper} {resource})"
 
 
 def completion_values(completion: Completion | None) -> list[str]:

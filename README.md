@@ -29,8 +29,9 @@ make install
 
 Open a new shell after installation. `make install` copies `amp.yaml` to the
 Carapace user spec directory under `${XDG_CONFIG_HOME:-$HOME/.config}` and
-installs the dynamic completion helper under `carapace/bin`. The helper uses
-Python 3 and may run an Amp JSON-listing command for account-backed completions.
+installs the dynamic completion helper under `carapace/bin`. The helper needs
+Python 3.9 or later and `bash` on `PATH`, and may run an Amp JSON-listing
+command for account-backed completions.
 
 ### Nix
 

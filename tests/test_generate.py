@@ -14,12 +14,12 @@ ROOT = Path(__file__).parents[1]
 JSON_STRING = r'"(?:[^"\\]|\\.)*"'
 COMPLETION_VALUES = re.compile(rf"^(?!\s*aliases:).*?(\[{JSON_STRING}(?:, {JSON_STRING})*\])$")
 HELPER_MACRO = re.compile(
-    r'\$sh\("\$\{XDG_CONFIG_HOME:-\$HOME/\.config\}/carapace/bin/amp-completions" (?P<resource>[a-z-]+)\)'
+    r'\$bash\("\$\{XDG_CONFIG_HOME:-\$HOME/\.config\}/carapace/bin/amp-completions" (?P<resource>[a-z-]+)\)'
 )
 
 
 def helper(resource: str) -> str:
-    return f'$sh("${{XDG_CONFIG_HOME:-$HOME/.config}}/carapace/bin/amp-completions" {resource})'
+    return f'$bash("${{XDG_CONFIG_HOME:-$HOME/.config}}/carapace/bin/amp-completions" {resource})'
 
 
 def tree(*commands: tuple[str, list[str], list[str]]) -> help_model.Command:
