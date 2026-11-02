@@ -37,6 +37,7 @@
             AMP_BIN = "${inputs'.llm-agents.packages.amp}/bin/amp";
             nativeBuildInputs = with pkgs; [
               carapace
+              dash
               gnumake
               python3
             ];
