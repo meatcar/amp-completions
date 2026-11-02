@@ -30,18 +30,27 @@ BASE_LOCK = {
 
 
 class UpdateCandidateTest(unittest.TestCase):
-    def test_allows_only_unattended_policy_classifications(self) -> None:
-        update_candidate.require_unattended(update_policy.PolicyResult("safe", ()))
-        update_candidate.require_unattended(
-            update_policy.PolicyResult("compatibility-change", ("removed command",))
-        )
+    def test_review_required_candidate_is_described_for_review(self) -> None:
+        outputs = self.run_main(update_policy.PolicyResult("review-required", ("blocked",)))
 
+        self.assertIn("classification=review-required\n", outputs["output"])
+        self.assertIn("unattended=false\n", outputs["output"])
+        self.assertIn("## Update policy: review required", outputs["pr_body"])
+        self.assertIn("- blocked", outputs["pr_body"])
+
+    def test_unattended_candidates_are_marked_for_merge(self) -> None:
+        for classification in ("safe", "compatibility-change"):
+            with self.subTest(classification=classification):
+                outputs = self.run_main(update_policy.PolicyResult(classification, ()))
+
+                self.assertIn(f"classification={classification}\n", outputs["output"])
+                self.assertIn("unattended=true\n", outputs["output"])
+
+    def test_unknown_classification_writes_no_outputs(self) -> None:
         with self.assertRaisesRegex(ValueError, "unexpected-policy"):
-            update_candidate.require_unattended(
-                update_policy.PolicyResult("unexpected-policy", ("unknown result",))
-            )
+            self.run_main(update_policy.PolicyResult("unexpected-policy", ("unknown result",)))
 
-    def test_blocked_candidate_writes_no_outputs(self) -> None:
+    def run_main(self, result: update_policy.PolicyResult) -> dict[str, str]:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             base_lock = root / "base-lock.json"
@@ -84,23 +93,17 @@ class UpdateCandidateTest(unittest.TestCase):
                         return_value="amp-manifest.json\namp.yaml\nflake.lock\n",
                     ),
                     mock.patch.object(update_candidate, "count_generated_diff_lines", return_value=1),
-                    mock.patch.object(
-                        update_policy,
-                        "classify_update",
-                        return_value=update_policy.PolicyResult(
-                            "review-required", ("blocked",)
-                        ),
-                    ),
+                    mock.patch.object(update_policy, "classify_update", return_value=result),
                 ):
-                    with self.assertRaisesRegex(ValueError, "review-required"):
-                        update_candidate.main()
+                    update_candidate.main()
+            except ValueError:
+                for path in (policy_json, policy_markdown, pr_body, output):
+                    self.assertFalse(path.exists(), path)
+                raise
             finally:
                 os.chdir(previous_directory)
 
-            self.assertFalse(policy_json.exists())
-            self.assertFalse(policy_markdown.exists())
-            self.assertFalse(pr_body.exists())
-            self.assertFalse(output.exists())
+            return {"output": output.read_text(), "pr_body": pr_body.read_text()}
 
     def test_accepts_only_llm_agents_lock_change(self) -> None:
         candidate = copy.deepcopy(BASE_LOCK)

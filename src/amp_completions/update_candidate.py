@@ -91,12 +91,12 @@ def validate_changed_files(changed_files: set[str]) -> None:
         raise ValueError("candidate has no changes")
 
 
-def require_unattended(result: update_policy.PolicyResult) -> None:
-    if result.classification not in UNATTENDED_CLASSIFICATIONS:
-        reasons = "; ".join(result.reasons) or "no reason provided"
-        raise ValueError(
-            f"candidate classification {result.classification} cannot merge unattended: {reasons}"
-        )
+def merges_unattended(result: update_policy.PolicyResult) -> bool:
+    if result.classification in UNATTENDED_CLASSIFICATIONS:
+        return True
+    if result.classification == "review-required":
+        return False
+    raise ValueError(f"unknown candidate classification: {result.classification}")
 
 
 def build_pr_body(
@@ -166,7 +166,7 @@ def main() -> int:
         changed_files=changed_files,
         generated_diff_lines=count_generated_diff_lines(),
     )
-    require_unattended(result)
+    unattended = merges_unattended(result)
     policy_markdown = update_policy.render_markdown(result)
     arguments.policy_json.write_text(json.dumps(result.as_dict(), sort_keys=True) + "\n")
     arguments.policy_markdown.write_text(policy_markdown)
@@ -175,7 +175,9 @@ def main() -> int:
         build_pr_body(old_version, new_version, upstream_revision, policy_markdown)
     )
     arguments.output.write_text(
-        f"classification={result.classification}\nupstream_revision={upstream_revision}\n"
+        f"classification={result.classification}\n"
+        f"unattended={str(unattended).lower()}\n"
+        f"upstream_revision={upstream_revision}\n"
     )
     return 0
 

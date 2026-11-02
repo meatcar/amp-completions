@@ -109,6 +109,18 @@ class UpdateWorkflowTest(unittest.TestCase):
         self.assertNotIn("gh pr merge \"$PULL_REQUEST\" --auto", self.workflow)
         self.assertNotIn("gh pr review", self.workflow)
 
+    def test_opens_review_pull_request_instead_of_merging_blocked_updates(self) -> None:
+        self.assertLess(
+            self.workflow.index("python3 -m amp_completions.update_candidate"),
+            self.workflow.index("if ! nix flake check; then"),
+        )
+        self.assertIn("UNATTENDED: ${{ steps.candidate.outputs.unattended }}", self.workflow)
+        self.assertIn("--add-label review-required", self.workflow)
+        self.assertLess(
+            self.workflow.index('if [ "$UNATTENDED" != true ]; then\n            gh pr edit'),
+            self.workflow.index('gh pr merge "$PULL_REQUEST"'),
+        )
+
     def test_requests_merge_gate_before_merging(self) -> None:
         self.assertIn("gh workflow run merge-gate.yml", self.workflow)
         self.assertLess(

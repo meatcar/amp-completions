@@ -154,12 +154,15 @@ parser, policy, workflow, and completion tests.
   merging stale validation. New and changed commands, flags, aliases, and help
   text are discovered automatically, and values listed in help text follow
   Amp. An update needs maintainer input when a new value-taking field has no
-  rule, help text no longer lists documented values, or a field loses its
-  completion and becomes free-form. Add the rule on `main` and the next hourly
-  run picks it up. A rule for help text that changed format must also pass on
-  the current Amp, so use a curated list or bump `llm-agents` in the same pull
-  request. A changed JSON response shape also requires a helper update;
-  until then the helper skips records it cannot read.
+  rule, help text no longer lists documented values, a field loses its
+  completion and becomes free-form, or the generated diff is too large. The
+  workflow then opens or refreshes a pull request labelled `review-required`
+  that lists the reasons, and does not merge it. Add the rule on `main` (the
+  workflow rewrites the update branch) and the next hourly run picks it up. A
+  rule for help text that changed format must also pass on the current Amp, so
+  use a curated list or bump `llm-agents` in the same pull request. A changed
+  JSON response shape also requires a helper update; until then the helper
+  skips records it cannot read.
 - [Update flake inputs](.github/workflows/update-flake-inputs.yml) updates the
   non-Amp root inputs weekly and merges them under the same rules. It cannot
   change `llm-agents` or files other than `flake.lock`.

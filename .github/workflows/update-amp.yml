@@ -63,7 +63,6 @@ jobs:
           generated=$(nix build .#amp-completions --no-link --print-out-paths)
           cp "$generated/share/carapace/specs/amp.yaml" amp.yaml
           cp "$generated/share/amp-completions/amp-manifest.json" amp-manifest.json
-          nix flake check
           python3 -m amp_completions.update_candidate \
             --base-lock /tmp/base-flake.lock \
             --base-manifest /tmp/base-manifest.json \
@@ -74,23 +73,41 @@ jobs:
             --output "$GITHUB_OUTPUT"
           echo "base_sha=$(git rev-parse origin/${{ github.event.repository.default_branch }})" \
             >> "$GITHUB_OUTPUT"
-      - name: Push validated candidate
+          if ! nix flake check; then
+            if [ "$(jq -r .classification /tmp/policy.json)" != review-required ]; then
+              exit 1
+            fi
+            printf '\n`nix flake check` fails on this candidate; see the Validation check.\n' \
+              >> /tmp/pr-body.md
+          fi
+      - name: Push candidate
         if: steps.detect.outputs.update_available == 'true'
         id: push
         env:
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          UNATTENDED: ${{ steps.candidate.outputs.unattended }}
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add flake.lock amp.yaml amp-manifest.json
           git commit -m "chore: update Amp to $NEW_VERSION"
+          # NOTE: Skip unchanged review candidates so each hourly run does not rerun validation.
+          if [ "$UNATTENDED" != true ] \
+            && git fetch --quiet origin "$BRANCH" \
+            && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
+            echo "Review candidate is unchanged on $BRANCH"
+            echo "pushed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           git push --force-with-lease origin "HEAD:$BRANCH"
+          echo "pushed=true" >> "$GITHUB_OUTPUT"
       - name: Create or refresh pull request
         if: steps.detect.outputs.update_available == 'true'
         id: pull-request
         env:
           GH_TOKEN: ${{ github.token }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
+          PUSHED: ${{ steps.push.outputs.pushed }}
         run: |
           pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
           if [ -n "$pull_request" ]; then
@@ -106,6 +123,9 @@ jobs:
           fi
           pull_request=$(gh pr list --state open --head "$BRANCH" --json number --jq '.[0].number')
           echo "number=$pull_request" >> "$GITHUB_OUTPUT"
+          if [ "$PUSHED" != true ]; then
+            exit 0
+          fi
           head_sha=$(git rev-parse HEAD)
           validation_run=
           for _ in $(seq 1 12); do
@@ -142,6 +162,7 @@ jobs:
           HEAD_SHA: ${{ steps.pull-request.outputs.head_sha }}
           MERGE_GATE_APP_ID: ${{ vars.MERGE_GATE_APP_ID }}
           PULL_REQUEST: ${{ steps.pull-request.outputs.number }}
+          UNATTENDED: ${{ steps.candidate.outputs.unattended }}
           VALIDATION_RUN: ${{ steps.pull-request.outputs.validation_run }}
         run: |
           gh label create amp-update \
@@ -152,11 +173,23 @@ jobs:
             --color 0e8a16 \
             --description "Update passed the unattended merge policy" \
             --force
+          gh label create review-required \
+            --color d93f0b \
+            --description "Update needs maintainer review before merging" \
+            --force
+          labels=$(gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name')
           gh pr edit "$PULL_REQUEST" --add-label amp-update
           if [ "$CLASSIFICATION" = safe ]; then
             gh pr edit "$PULL_REQUEST" --add-label safe-update
-          elif gh pr view "$PULL_REQUEST" --json labels --jq '.labels[].name' | grep -Fxq safe-update; then
+          elif echo "$labels" | grep -Fxq safe-update; then
             gh pr edit "$PULL_REQUEST" --remove-label safe-update
+          fi
+          if [ "$UNATTENDED" != true ]; then
+            gh pr edit "$PULL_REQUEST" --add-label review-required
+            echo "Update needs maintainer review; see pull request #$PULL_REQUEST"
+            exit 0
+          elif echo "$labels" | grep -Fxq review-required; then
+            gh pr edit "$PULL_REQUEST" --remove-label review-required
           fi
           gh run watch "$VALIDATION_RUN" --exit-status
           .github/scripts/wait-for-merge-gate "${{ github.repository }}" "$HEAD_SHA" "$MERGE_GATE_APP_ID"
