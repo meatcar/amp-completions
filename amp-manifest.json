@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793592041-g8ba069",
+  "amp_version": "0.0.1793664053-ga6248e",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -320,6 +320,7 @@
     "amp --orb-provider",
     "amp --orb-size",
     "amp --plugin-ready-timeout",
+    "amp --profile",
     "amp --project",
     "amp --remote-control-terminal",
     "amp --runner-dir",
@@ -769,6 +770,7 @@
     "amp --orb-provider",
     "amp --orb-size",
     "amp --plugin-ready-timeout",
+    "amp --profile",
     "amp --project",
     "amp --remote-control-terminal",
     "amp --runner-dir",
