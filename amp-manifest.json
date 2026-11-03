@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793664053-ga6248e",
+  "amp_version": "0.0.1793692836-g3a602a",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -313,6 +313,7 @@
     "amp --no-color",
     "amp --no-ide",
     "amp --no-notifications",
+    "amp --no-remote-control-portals",
     "amp --no-remote-control-terminal",
     "amp --no-tui",
     "amp --notifications",
@@ -322,6 +323,7 @@
     "amp --plugin-ready-timeout",
     "amp --profile",
     "amp --project",
+    "amp --remote-control-portals",
     "amp --remote-control-terminal",
     "amp --runner-dir",
     "amp --settings-file",
@@ -763,6 +765,7 @@
     "amp --no-color",
     "amp --no-ide",
     "amp --no-notifications",
+    "amp --no-remote-control-portals",
     "amp --no-remote-control-terminal",
     "amp --no-tui",
     "amp --notifications",
@@ -772,6 +775,7 @@
     "amp --plugin-ready-timeout",
     "amp --profile",
     "amp --project",
+    "amp --remote-control-portals",
     "amp --remote-control-terminal",
     "amp --runner-dir",
     "amp --settings-file",
