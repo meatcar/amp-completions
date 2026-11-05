@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793764839-g19a5bc",
+  "amp_version": "0.0.1793829508-g91ac5b",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -180,6 +180,7 @@
     "amp orb portal",
     "amp orb portal access",
     "amp orb provider",
+    "amp orb provider create",
     "amp orb redact-output",
     "amp orb restart-processes",
     "amp orb service",
@@ -269,6 +270,7 @@
     "amp threads import",
     "amp threads import claude",
     "amp threads import codex",
+    "amp threads import conductor",
     "amp threads import detect",
     "amp threads import opencode",
     "amp threads import pi",
@@ -540,6 +542,7 @@
     "amp orb provider --allow-multiple",
     "amp orb provider --amp-url",
     "amp orb provider --token",
+    "amp orb provider create --workspace",
     "amp orb redact-output --thread",
     "amp orb restart-processes --thread",
     "amp orb service ensure --json",
@@ -695,6 +698,15 @@
     "amp threads import codex --max-age",
     "amp threads import codex --recheck",
     "amp threads import codex --reimport",
+    "amp threads import conductor --all",
+    "amp threads import conductor --conductor-db",
+    "amp threads import conductor --dry-run",
+    "amp threads import conductor --expect-user-email",
+    "amp threads import conductor --json",
+    "amp threads import conductor --limit",
+    "amp threads import conductor --max-age",
+    "amp threads import conductor --recheck",
+    "amp threads import conductor --reimport",
     "amp threads import detect --json",
     "amp threads import opencode --all",
     "amp threads import opencode --dry-run",
