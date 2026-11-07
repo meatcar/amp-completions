@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793937652-gdc5d48",
+  "amp_version": "0.0.1793995239-gedfe82",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -222,6 +222,12 @@
     "amp projects",
     "amp projects create",
     "amp projects delete",
+    "amp projects feedback-widget",
+    "amp projects feedback-widget add-origin",
+    "amp projects feedback-widget disable",
+    "amp projects feedback-widget enable",
+    "amp projects feedback-widget get",
+    "amp projects feedback-widget remove-origin",
     "amp projects gallery-media",
     "amp projects gallery-media get",
     "amp projects gallery-media set",
@@ -598,6 +604,12 @@
     "amp projects create --workspace",
     "amp projects delete --json",
     "amp projects delete --yes",
+    "amp projects feedback-widget add-origin --json",
+    "amp projects feedback-widget disable --json",
+    "amp projects feedback-widget disable --yes",
+    "amp projects feedback-widget enable --json",
+    "amp projects feedback-widget get --json",
+    "amp projects feedback-widget remove-origin --json",
     "amp projects get --json",
     "amp projects list --json",
     "amp projects snapshots delete --json",
