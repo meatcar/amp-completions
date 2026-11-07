@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1793995239-gedfe82",
+  "amp_version": "0.0.1794009661-g88d32b",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -179,6 +179,7 @@
     "amp orb id-token",
     "amp orb portal",
     "amp orb portal access",
+    "amp orb portal list",
     "amp orb provider",
     "amp orb provider create",
     "amp orb redact-output",
@@ -545,6 +546,8 @@
     "amp orb portal --take-over",
     "amp orb portal --thread",
     "amp orb portal --title",
+    "amp orb portal list --json",
+    "amp orb portal list --thread",
     "amp orb provider --allow-multiple",
     "amp orb provider --amp-url",
     "amp orb provider --token",
