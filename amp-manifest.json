@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1794196844-g44d37b",
+  "amp_version": "0.0.1794268864-g13d0b0",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -55,6 +55,9 @@
     ],
     "amp skill repositories": [
       "repos"
+    ],
+    "amp spaces": [
+      "space"
     ],
     "amp threads": [
       "t",
@@ -224,7 +227,6 @@
     "amp projects create",
     "amp projects delete",
     "amp projects feedback-widget",
-    "amp projects feedback-widget add-origin",
     "amp projects feedback-widget disable",
     "amp projects feedback-widget enable",
     "amp projects feedback-widget get",
@@ -261,6 +263,8 @@
     "amp skill list",
     "amp skill remove",
     "amp skill repositories",
+    "amp spaces",
+    "amp spaces create",
     "amp svc",
     "amp svc gmail",
     "amp svc gmail list_labels",
@@ -336,6 +340,7 @@
     "amp --settings-file",
     "amp --share",
     "amp --share-network",
+    "amp --space",
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
@@ -607,7 +612,6 @@
     "amp projects create --workspace",
     "amp projects delete --json",
     "amp projects delete --yes",
-    "amp projects feedback-widget add-origin --json",
     "amp projects feedback-widget disable --json",
     "amp projects feedback-widget disable --yes",
     "amp projects feedback-widget enable --json",
@@ -685,6 +689,10 @@
     "amp skill list --json",
     "amp skill remove --target",
     "amp skill repositories --json",
+    "amp spaces create --goal",
+    "amp spaces create --json",
+    "amp spaces create --project",
+    "amp spaces create --shared-with",
     "amp svc --input",
     "amp svc gmail modify_labels --input",
     "amp svc gmail read_message --input",
@@ -804,6 +812,7 @@
     "amp --settings-file",
     "amp --share",
     "amp --share-network",
+    "amp --space",
     "amp --stream-json",
     "amp --stream-json-input",
     "amp --stream-json-thinking",
