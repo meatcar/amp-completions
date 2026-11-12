@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1794427236-ga7dfca",
+  "amp_version": "0.0.1794470450-g3a6702",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -198,6 +198,7 @@
     "amp orb portal list",
     "amp orb provider",
     "amp orb provider create",
+    "amp orb provider set-default",
     "amp orb redact-output",
     "amp orb restart-processes",
     "amp orb service",
@@ -596,6 +597,7 @@
     "amp orb provider --amp-url",
     "amp orb provider --token",
     "amp orb provider create --workspace",
+    "amp orb provider set-default --workspace",
     "amp orb redact-output --thread",
     "amp orb restart-processes --thread",
     "amp orb service ensure --json",
@@ -676,7 +678,9 @@
     "amp projects update --listed-on-amp-store",
     "amp projects update --name",
     "amp projects update --no-listed-on-amp-store",
+    "amp projects update --orb-provider",
     "amp projects update --orb-size",
+    "amp projects update --orb-type",
     "amp projects update --pre-clone-script-file",
     "amp projects update --pre-setup-script-file",
     "amp projects update --remote-url",
