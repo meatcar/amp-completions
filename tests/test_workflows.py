@@ -121,6 +121,17 @@ class UpdateWorkflowTest(unittest.TestCase):
             self.workflow.index('gh pr merge "$PULL_REQUEST"'),
         )
 
+    def test_skips_review_candidates_only_after_validation_or_decline(self) -> None:
+        self.assertIn('.conclusion != \\"action_required\\"', self.workflow)
+        self.assertLess(
+            self.workflow.index('elif [ "$PUSHED" != true ]; then'),
+            self.workflow.index("gh pr create"),
+        )
+        self.assertLess(
+            self.workflow.index('[ -n "$PULL_REQUEST" ] || exit 0'),
+            self.workflow.index("gh label create amp-update"),
+        )
+
     def test_requests_merge_gate_before_merging(self) -> None:
         self.assertIn("gh workflow run merge-gate.yml", self.workflow)
         self.assertLess(

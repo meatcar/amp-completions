@@ -158,7 +158,8 @@ parser, policy, workflow, and completion tests.
   completion and becomes free-form, or the generated diff is too large. The
   workflow then opens or refreshes a pull request labelled `review-required`
   that lists the reasons, and does not merge it. Add the rule on `main` (the
-  workflow rewrites the update branch) and the next hourly run picks it up. A
+  workflow rewrites the update branch) and the next hourly run picks it up.
+  Closing the pull request declines that candidate until Amp or `main` changes. A
   rule for help text that changed format must also pass on the current Amp, so
   use a curated list or bump `llm-agents` in the same pull request. A changed
   JSON response shape also requires a helper update; until then the helper

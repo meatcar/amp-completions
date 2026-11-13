@@ -84,6 +84,7 @@ jobs:
         if: steps.detect.outputs.update_available == 'true'
         id: push
         env:
+          GH_TOKEN: ${{ github.token }}
           NEW_VERSION: ${{ steps.detect.outputs.new_version }}
           UNATTENDED: ${{ steps.candidate.outputs.unattended }}
         run: |
@@ -91,13 +92,23 @@ jobs:
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add flake.lock amp.yaml amp-manifest.json
           git commit -m "chore: update Amp to $NEW_VERSION"
-          # NOTE: Skip unchanged review candidates so each hourly run does not rerun validation.
+          # NOTE: Skip unchanged review candidates once validated so each hourly run does not rerun validation.
           if [ "$UNATTENDED" != true ] \
             && git fetch --quiet origin "$BRANCH" \
             && [ "$(git rev-parse 'HEAD^{tree}')" = "$(git rev-parse 'FETCH_HEAD^{tree}')" ]; then
-            echo "Review candidate is unchanged on $BRANCH"
-            echo "pushed=false" >> "$GITHUB_OUTPUT"
-            exit 0
+            remote_head=$(git rev-parse FETCH_HEAD)
+            validated=$(gh run list \
+              --workflow validate.yml \
+              --branch "$BRANCH" \
+              --event pull_request \
+              --limit 20 \
+              --json headSha,conclusion \
+              --jq ".[] | select(.headSha == \"$remote_head\" and .conclusion != \"action_required\") | .headSha")
+            if [ -n "$validated" ]; then
+              echo "Review candidate is unchanged and validated on $BRANCH"
+              echo "pushed=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
           fi
           git push --force-with-lease origin "HEAD:$BRANCH"
           echo "pushed=true" >> "$GITHUB_OUTPUT"
@@ -114,6 +125,9 @@ jobs:
             gh pr edit "$pull_request" \
               --title "Update Amp to $NEW_VERSION" \
               --body-file /tmp/pr-body.md
+          elif [ "$PUSHED" != true ]; then
+            echo "Review candidate on $BRANCH was closed without merging; skipping"
+            exit 0
           else
             gh pr create \
               --base "${{ github.event.repository.default_branch }}" \
@@ -165,6 +179,7 @@ jobs:
           UNATTENDED: ${{ steps.candidate.outputs.unattended }}
           VALIDATION_RUN: ${{ steps.pull-request.outputs.validation_run }}
         run: |
+          [ -n "$PULL_REQUEST" ] || exit 0
           gh label create amp-update \
             --color 1d76db \
             --description "Generated Amp completion update" \
