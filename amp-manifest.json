@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1794470450-g3a6702",
+  "amp_version": "0.0.1794513636-g1096bf",
   "command_aliases": {
     "amp domains remove": [
       "rm"
@@ -325,6 +325,7 @@
     "amp --attach",
     "amp --color",
     "amp --desktop",
+    "amp --effort",
     "amp --execute",
     "amp --executor",
     "amp --fast",
@@ -335,6 +336,7 @@
     "amp --log-level",
     "amp --mcp-config",
     "amp --mode",
+    "amp --model",
     "amp --no-archive-after-execute",
     "amp --no-color",
     "amp --no-ide",
@@ -827,6 +829,7 @@
     "amp --attach",
     "amp --color",
     "amp --desktop",
+    "amp --effort",
     "amp --execute",
     "amp --executor",
     "amp --fast",
@@ -837,6 +840,7 @@
     "amp --log-level",
     "amp --mcp-config",
     "amp --mode",
+    "amp --model",
     "amp --no-archive-after-execute",
     "amp --no-color",
     "amp --no-ide",
