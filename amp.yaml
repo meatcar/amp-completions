@@ -89,7 +89,7 @@ commands:
           "--amp-url=": "Amp server URL"
         commands:
           - name: "create"
-            description: "Create a self-hosted orb provider and save its token with your Amp credentials, where amp orb provider"
+            description: "Create a self-hosted orb provider and save its token with your Amp credentials, where amp orb provider reads it"
             flags:
               "--workspace?": "Create it for a workspace instead of for yourself"
           - name: "set-default"
@@ -104,7 +104,7 @@ commands:
           positional:
             - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "portal"
-        description: "Register a portal for an existing process and print its URL; use \"amp orb service start\" for"
+        description: "Register a portal for an existing process and print its URL; use \"amp orb service start\" for long-lived servers"
         flags:
           "--thread=": "Thread URL or ID (defaults to AMP_THREAD_ID)"
           "--domain=": "Portal domain used to recognize portal URL targets and to build the fallback URL when Amp cannot be reached (defaults to AMP_PORTAL_DOMAIN or onamp.dev). It does not change the portal's public hostname; use --hostname for that. Fails when the URL Amp assigned is not under this domain."
@@ -129,14 +129,14 @@ commands:
                 "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "service"
         aliases: ["services"]
-        description: "Manage long-lived services (dev servers, watchers) as supervised processes that"
+        description: "Manage long-lived services (dev servers, watchers) as supervised processes that survive Amp CLI updates and restart on failure"
         commands:
           - name: "ensure"
             description: "Ensure every service declared in .amp/services.yaml is running and exposed at its portal URLs"
             flags:
               "--json": "Print machine-readable JSON results"
           - name: "start"
-            description: "Start an undeclared ad-hoc supervised service, e.g.: amp orb service start preview --command 'pnpm dev'"
+            description: "Start an undeclared ad-hoc supervised service, e.g.: amp orb service start preview --command 'pnpm dev' --portal"
             flags:
               "--command=": "Shell command to run; it runs with $PORT set (and $PUBLIC_URL when --portal) and should listen on $PORT"
               "--cwd=": "Working directory for the command (defaults to the current directory)"
@@ -172,7 +172,7 @@ commands:
         description: "Work with the orb Desktop shown in the Desktop tab of the thread"
         commands:
           - name: "ensure"
-            description: "Start the Desktop and its Google Chrome if needed and print the Chrome DevTools endpoint for agent-browser"
+            description: "Start the Desktop and its Google Chrome if needed and print the Chrome DevTools endpoint for agent-browser --cdp"
             flags:
               "--json": "Print machine-readable JSON"
       - name: "restart-processes"
@@ -192,7 +192,7 @@ commands:
           flag:
             "subject-scope": ["project", "thread", "user", "workspace"]
       - name: "redact-output"
-        description: "Copy stdin to stdout with secrets redacted: known token formats, the thread's secret values, and"
+        description: "Copy stdin to stdout with secrets redacted: known token formats, the thread's secret values, and the values of the environment variables named in AMP_SECRET_ENV_NAMES (comma-separated)"
         flags:
           "--thread=": "Thread URL (defaults to AMP_THREAD_ID)"
         completion:
@@ -202,12 +202,12 @@ commands:
     description: "Commands for accessing Amp portal URLs"
     commands:
       - name: "login-url"
-        description: "Mint a single-use login URL (valid ~60s) that signs a non-browser client into an Amp portal URL; fetching"
+        description: "Mint a single-use login URL (valid ~60s) that signs a non-browser client into an Amp portal URL; fetching it once sets the portal session cookie and redirects to the portal page"
   - name: "net"
-    description: "Orb Network Routing: send an orb\u2019s outbound traffic through an exit node on your"
+    description: "Orb Network Routing: send an orb\u2019s outbound traffic through an exit node on your own machine (for example a residential connection)"
     commands:
       - name: "exit-node"
-        description: "Run this machine as an exit node for your orbs: it appears in your runner list and any orb thread you own"
+        description: "Run this machine as an exit node for your orbs: it appears in your runner list and any orb thread you own can route through it with `amp net route`"
         flags:
           "--id=": "ID and name for this exit node (hostname-like); lets several exit nodes run on one machine. Defaults to this machine\u2019s hostname."
           "--thread=": "Only serve this thread (ID or URL); repeat to allow several. Threads you do not own are never served."
@@ -217,7 +217,7 @@ commands:
           flag:
             "thread": ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" threads)"]
       - name: "route"
-        description: "In an orb: send this orb\u2019s traffic through one of your exit nodes (by ID or hostname). With no argument,"
+        description: "In an orb: send this orb\u2019s traffic through one of your exit nodes (by ID or hostname). With no argument, list available exit nodes."
         flags:
           "--system": "Stop routing through an exit node and use the orb\u2019s own network"
           "--wait=": "How long to wait for the exit node to connect before giving up (0 to return immediately)"
@@ -230,9 +230,9 @@ commands:
         flags:
           "--count=": "Number of pings to send"
       - name: "run"
-        description: "In an orb: run one command with its network traffic sent through the exit node, without changing orb-wide"
+        description: "In an orb: run one command with its network traffic sent through the exit node, without changing orb-wide configuration"
   - name: "profile"
-    description: "Amp Profiles: the orb Desktop Chrome\u2019s sign-ins, saved passwords, and site data,"
+    description: "Amp Profiles: the orb Desktop Chrome\u2019s sign-ins, saved passwords, and site data, saved by Amp so they follow you across orbs"
     commands:
       - name: "list"
         description: "List your profiles with their IDs and mark the one this orb uses"
@@ -246,7 +246,7 @@ commands:
         flags:
           "-y, --yes": "Delete without asking"
       - name: "use"
-        description: "Use a profile in this orb\u2019s Chrome; Chrome restarts with it. Waits until it is applied. Only profiles allowed"
+        description: "Use a profile in this orb\u2019s Chrome; Chrome restarts with it. Waits until it is applied. Only profiles allowed for the agent in Settings \u203a Profiles can be used this way."
         flags:
           "--thread=": "Thread to change (defaults to this orb\u2019s thread)"
         completion:
@@ -296,7 +296,7 @@ commands:
           - name: "allow"
             description: "Request Screen Recording or Accessibility permission"
   - name: "clone"
-    description: "Clone an Amp-hosted Project, Personal Plugins or Skills repository, or Workspace"
+    description: "Clone an Amp-hosted Project, Personal Plugins or Skills repository, or Workspace Plugins or Skills repository"
     flags:
       "--no-git-setup": "Do not configure the Git credential helper automatically (or set AMP_NO_GIT_SETUP=1)"
     completion:
@@ -328,7 +328,7 @@ commands:
     description: "Continue the last thread"
   - name: "report-bug"
     aliases: ["report", "diagnostics"]
-    description: "Report a bug with diagnostics from the amp --no-tui"
+    description: "Report a bug with diagnostics from the amp --no-tui runner in this directory or from this orb thread"
   - name: "threads"
     aliases: ["t", "thread"]
     description: "Manage threads"
@@ -603,7 +603,7 @@ commands:
         description: "Output the plugin API documentation understood by this version of Amp"
   - name: "skill"
     aliases: ["skills"]
-    description: "Manage skills from shared references, Git repositories, or local"
+    description: "Manage skills from shared references, Git repositories, or local paths"
     commands:
       - name: "add"
         description: "Install skills from a source"
@@ -870,7 +870,7 @@ commands:
               "--json": "print the complete non-secret connection data as JSON"
               "--workspace": "list keys of your current workspace instead of your user"
           - name: "activate"
-            description: "Activate a model provider key (subscriptions other than ChatGPT replace the active"
+            description: "Activate a model provider key (subscriptions other than ChatGPT replace the active connection of the same type)"
             completion:
               positional:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" model-providers)"]
@@ -973,7 +973,7 @@ commands:
                 "api-key-file": ["$files"]
                 "api-format": ["chat-completions", "responses", "anthropic-messages"]
           - name: "add-key"
-            description: "Add an Anthropic or OpenAI API key, or a connection that authenticates with workload"
+            description: "Add an Anthropic or OpenAI API key, or a connection that authenticates with workload identity federation instead"
             flags:
               "--name=": "custom connection name"
               "--model-mapping=": "newline- or comma-separated provider/model patterns served by this connection (the default when not given is all supported models)"
@@ -990,7 +990,7 @@ commands:
               flag:
                 "api-key-file": ["$files"]
           - name: "setup-guide"
-            description: "Explain how to obtain the credential a provider needs; for anthropic, openai, and"
+            description: "Explain how to obtain the credential a provider needs; for anthropic, openai, and openrouter, the API key and the workload identity federation alternative"
             flags:
               "--personal": "show the exact identity values for connections on your personal account"
               "--workspace": "show the exact identity values for connections on your current workspace"
@@ -998,7 +998,7 @@ commands:
               positional:
                 - ["ollama-cloud", "openrouter", "vercel", "cloudflare", "google-cloud-agent-platform", "amazon-bedrock", "opencode-go", "custom-url"]
           - name: "edit-key"
-            description: "Edit a model provider API key: its name, model mapping, or, for anthropic and openai,"
+            description: "Edit a model provider API key: its name, model mapping, or, for anthropic and openai, its credential"
             flags:
               "--name=": "new connection name"
               "--model-mapping=": "new newline- or comma-separated provider/model patterns served by this connection; prefix a pattern with - to exclude it, and add \"-> provider-model-id\" after an exact model ID to override the model ID sent to the provider"
@@ -1017,7 +1017,7 @@ commands:
               positional:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" model-providers)"]
           - name: "add-chatgpt-subscription"
-            description: "Link your ChatGPT subscription to Amp as a model provider by signing in with ChatGPT"
+            description: "Link your ChatGPT subscription to Amp as a model provider by signing in with ChatGPT in your browser"
             flags:
               "--legacy": "Add a ChatGPT Subscription (Legacy) connection by signing in to OpenAI in a browser on this machine, without a device code or token sharing (for ChatGPT Business and Enterprise workspaces that turn them off)"
           - name: "add-github-copilot-subscription"
@@ -1177,7 +1177,7 @@ commands:
               positional:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
           - name: "set"
-            description: "Set a project\u2019s Amp Store gallery media from a JSON array of {\"type\":\"image\"|\"video\",\"url\":\"<Amp artifact"
+            description: "Set a project\u2019s Amp Store gallery media from a JSON array of {\"type\":\"image\"|\"video\",\"url\":\"<Amp artifact URL>\",\"width\":N,\"height\":N} items"
             completion:
               positional:
                 - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
@@ -1212,7 +1212,7 @@ commands:
             - ["$sh(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" projects)"]
   - name: "spaces"
     aliases: ["space"]
-    description: "Create Spaces. To start a thread in a Space, run amp -x or amp -ox"
+    description: "Create Spaces. To start a thread in a Space, run amp -x or amp -ox with --space."
     commands:
       - name: "create"
         description: "Create a Space, as New Space does, and print its URL"
@@ -1255,7 +1255,7 @@ commands:
         flags:
           "--yes": "Confirm stopping this deployment and removing its stored configuration"
       - name: "create"
-        description: "Create a machine owned by you (<username>/<name>) or by a workspace you belong to"
+        description: "Create a machine owned by you (<username>/<name>) or by a workspace you belong to (<workspace>/<name>)"
         flags:
           "--size=": "Machine size (default b1.small)"
       - name: "list"
@@ -1279,7 +1279,7 @@ commands:
       - name: "rename"
         description: "Rename a machine within its namespace; its deployments keep their URLs, data, and secrets"
       - name: "schedule"
-        description: "Run a machine only during a daily window, such as --on 05:00 --off 23:00 --tz Europe/Berlin, to"
+        description: "Run a machine only during a daily window, such as --on 05:00 --off 23:00 --tz Europe/Berlin, to save costs; --clear keeps it on all the time"
         flags:
           "--on=": "Local time the machine starts each day"
           "--off=": "Local time the machine stops each day; earlier than --on runs overnight"

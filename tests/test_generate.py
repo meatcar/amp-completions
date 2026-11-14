@@ -15,9 +15,11 @@ Usage: amp threads [options] [command]
 
 Commands:
 
-  new            [alias: n] Create a new thread
+  new            [alias: n] Create a new thread from
+                 a prompt
   share          [alias: s] Share a thread
-    multiplayer  Open or close multiplayer
+    multiplayer  Open or close multiplayer for
+                 everyone
 
 Options:
 
@@ -48,6 +50,14 @@ class ParseHelpTest(unittest.TestCase):
 
         self.assertEqual([command.name for command in commands], ["new", "share"])
         self.assertEqual(commands[0].aliases, ["n"])
+
+    def test_joins_wrapped_command_descriptions(self) -> None:
+        commands = generate.parse_commands(HELP)
+
+        self.assertEqual(
+            [command.description for command in commands],
+            ["Create a new thread from a prompt", "Share a thread"],
+        )
 
     def test_parses_local_options(self) -> None:
         options = generate.parse_options(HELP)

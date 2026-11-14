@@ -51,6 +51,8 @@ def run_amp(amp: str, arguments: list[str]) -> str:
 def parse_commands(help_text: str) -> list[Command]:
     commands: list[Command] = []
     in_commands = False
+    current: Command | None = None
+    wrap_indent = ""
 
     for line in help_text.splitlines():
         if line == "Commands:":
@@ -61,14 +63,21 @@ def parse_commands(help_text: str) -> list[Command]:
         if not in_commands:
             continue
 
+        if current and line.startswith(wrap_indent) and line[len(wrap_indent) :].strip():
+            current.description += " " + line.strip()
+            continue
+
         match = COMMAND.match(line)
+        current = None
         if not match or len(match["indent"]) != 2:
             continue
 
         alias = COMMAND_ALIAS.match(match["summary"])
         aliases = alias["aliases"].split(", ") if alias else []
         description = alias["description"] if alias else match["summary"]
-        commands.append(Command(match["name"], description, aliases))
+        current = Command(match["name"], description, aliases)
+        wrap_indent = " " * match.start("summary")
+        commands.append(current)
 
     return commands
 
