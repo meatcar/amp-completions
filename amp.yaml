@@ -54,6 +54,8 @@ completion:
     "log-level": ["debug", "info", "warn", "error", "audit"]
     "log-file": ["$files"]
     "mcp-config": ["$files"]
+    "mode": ["low", "medium", "high", "ultra", "claude-code"]
+    "effort": ["none", "minimal", "low", "medium", "high", "xhigh", "max"]
     "features": ["fast\tFaster serving", "plaid\tUltrafast serving", "pro\tGPT-5.6 Pro mode", "$uniquelist(,)"]
     "executor": ["local", "orb"]
     "attach": ["$files"]
@@ -501,6 +503,10 @@ commands:
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--cursor-dir=": "Cursor editor User directory, which holds globalStorage/state.vscdb (defaults to ~/Library/Application Support/Cursor/User on macOS, ~/.config/Cursor/User on Linux, %APPDATA%\\Cursor\\User on Windows)"
               "--cursor-data-dir=": "Cursor CLI data directory, which holds projects/*/agent-transcripts (defaults to $CURSOR_DATA_DIR or ~/.cursor)"
+            completion:
+              flag:
+                "cursor-dir": ["$directories"]
+                "cursor-data-dir": ["$directories"]
           - name: "devin"
             aliases: ["windsurf"]
             description: "Import Devin Local sessions (Devin Desktop, formerly Windsurf, and the devin CLI)"
@@ -514,6 +520,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--devin-dir=": "Devin data directory, which holds cli/sessions.db (defaults to $DEVIN_SESSIONS_DIR, $XDG_DATA_HOME/devin, or ~/.local/share/devin)"
+            completion:
+              flag:
+                "devin-dir": ["$directories"]
           - name: "opencode"
             description: "Import OpenCode sessions from this machine"
             flags:
@@ -541,6 +550,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--pi-dir=": "Pi sessions directory (defaults to $PI_CODING_AGENT_DIR/sessions or ~/.pi/agent/sessions)"
+            completion:
+              flag:
+                "pi-dir": ["$directories"]
           - name: "conductor"
             description: "Import Conductor chats from this Mac"
             flags:
@@ -553,6 +565,9 @@ commands:
               "--reimport": "Import conversations again even if already imported, replacing the messages of their existing Amp threads"
               "--json": "Write progress as one JSON object per line (used by the Amp Mac app to run imports in the background)"
               "--conductor-db=": "Conductor database (defaults to ~/Library/Application Support/com.conductor.app/conductor.db)"
+            completion:
+              flag:
+                "conductor-db": ["$files"]
       - name: "rename"
         aliases: ["r"]
         description: "Rename a thread"
@@ -1094,11 +1109,16 @@ commands:
             completion:
               flag:
                 "api-key-file": ["$files"]
+              positional:
+                - ["anthropic", "openai"]
           - name: "setup-guide"
             description: "Explain how to obtain the credential a provider needs; for anthropic, openai, and openrouter, the API key and the workload identity federation alternative"
             flags:
               "--personal": "show the exact identity values for connections on your personal account"
               "--workspace": "show the exact identity values for connections on your current workspace"
+            completion:
+              positional:
+                - ["anthropic", "openai", "ollama-cloud", "openrouter", "vercel", "cloudflare", "ngrok", "google-cloud-agent-platform", "google-ai-studio", "amazon-bedrock", "azure-ai-foundry", "opencode-go", "deepseek", "zai", "alibaba", "kimi", "fireworks", "baseten", "nvidia", "custom-url"]
           - name: "edit-key"
             description: "Edit a model provider API key: its name, model mapping, or, for anthropic and openai, its credential"
             flags:
@@ -1376,6 +1396,10 @@ commands:
           "--domain=": "Serve the deployment at this hostname on one of the owner's custom domains"
           "--no-domain": "Serve the deployment at its onamp.dev URL again"
           "--take-over": "Move the --domain hostname from a thread portal or another deployment to this one"
+        completion:
+          flag:
+            "root": ["$directories"]
+            "domain": ["$bash(\"${XDG_CONFIG_HOME:-$HOME/.config}/carapace/bin/amp-completions\" domains)"]
       - name: "deployments"
         description: "List independent deployments on a machine"
       - name: "cancel-deploy"
@@ -1402,6 +1426,10 @@ commands:
         description: "Copy a file to or from a machine, such as amp boxes cp backup.dump alice/site:backup.dump"
         flags:
           "--deployment=": "Resolve the machine path in this deployment's data directory; copied files belong to the deployment"
+        completion:
+          positional:
+            - ["$files"]
+            - ["$files"]
       - name: "delete"
         description: "Destroy a machine and its stored data"
         flags:

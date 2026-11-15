@@ -24,6 +24,21 @@ class ResolveTest(unittest.TestCase):
             resolution.completions[("amp", "threads", "search", "<query>")], completions.Exempt
         )
 
+    def test_path_suffixes_complete_paths_unless_a_rule_overrides_them(self) -> None:
+        resolution = completions.resolve(
+            tree(("threads import future", ["--future-dir <path>", "--future-file <path>"], []))
+        )
+        command = ("amp", "threads", "import", "future")
+
+        self.assertEqual(resolution.completions[(*command, "--future-dir")], completions.DIRECTORIES)
+        self.assertEqual(resolution.completions[(*command, "--future-file")], completions.FILES)
+        self.assertIsInstance(
+            completions.resolve(tree(("", ["--runner-dir <dir>"], []))).completions[
+                ("amp", "--runner-dir")
+            ],
+            completions.Exempt,
+        )
+
     def test_rules_whose_field_disappeared_are_stale_not_blocking(self) -> None:
         resolution = completions.resolve(
             tree(("threads color", [], ["<thread>"]), ("plugins add", ["--target"], []))

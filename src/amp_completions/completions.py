@@ -43,7 +43,7 @@ Rule = Literals | Resource | Paths | Exempt | Documented
 Completion = Literals | Resource | Paths | Exempt
 VALUE_SEPARATOR = re.compile(r",\s+or\s+|,\s+|\s+or\s+")
 PARENTHESIZED = Documented(r"\((?P<values>[^()]+)\)\.?$")
-ROUTERS = Documented(r": (?P<values>[^:]+)$")
+LISTED_AFTER_COLON = Documented(r": (?P<values>[^:]+)$")
 
 FILES = Paths("$files")
 DIRECTORIES = Paths("$directories")
@@ -78,22 +78,34 @@ ORB_SIZES = Literals(
     ("a1.tiny", "a1.small", "a1.medium", "a1.large", "a1.xxlarge", "a1.3xlarge")
 )
 AGENT_MODES = Literals(("low", "medium", "high", "ultra"))
+REASONING_EFFORTS = Literals(("none", "minimal", "low", "medium", "high", "xhigh", "max"))
 NEW_NAME = Exempt("new name")
 NOT_LISTED = Exempt("Amp has no JSON listing for these values")
+NOT_QUERIED = Exempt("helper does not query these values yet")
+EXTERNAL_IDS = Exempt("external session IDs")
 
-# NOTE: Lookup order: EXACT, FLAG_DEFAULTS, PLACEHOLDER_DEFAULTS, then *-file flags.
+# NOTE: Lookup order: EXACT, FLAG_DEFAULTS, PLACEHOLDER_DEFAULTS, then *-file and *-dir flags.
 EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "--attach"): FILES,
     ("amp", "--executor"): Literals(("local", "orb")),
     ("amp", "--runner-dir"): Exempt("directory on a remote runner"),
+    ("amp", "boxes", "cp", "<destination>"): FILES,
+    ("amp", "boxes", "cp", "<source>"): FILES,
+    ("amp", "boxes", "create", "--size"): Exempt("machine sizes not documented"),
+    ("amp", "boxes", "deploy", "--branch"): Exempt("Git branch name"),
+    ("amp", "boxes", "deploy", "--domain"): DOMAINS,
+    ("amp", "boxes", "deploy", "--size"): Exempt("machine sizes not documented"),
+    ("amp", "boxes", "deploy", "<target>"): NOT_QUERIED,
+    ("amp", "boxes", "rename", "<new-name>"): NEW_NAME,
     ("amp", "account", "switch", "<account>"): ACCOUNTS,
     ("amp", "clone", "<repository>"): Exempt("repository reference"),
     ("amp", "clone", "<target-dir>"): DIRECTORIES,
     ("amp", "completions", "<shell>"): Literals(("bash", "zsh", "fish", "pwsh")),
-    ("amp", "config", "model-providers", "add-router", "<router>"): ROUTERS,
+    ("amp", "config", "model-providers", "add-key", "<provider>"): LISTED_AFTER_COLON,
+    ("amp", "config", "model-providers", "add-router", "<router>"): LISTED_AFTER_COLON,
     ("amp", "config", "model-providers", "check-access", "--provider-key"): MODEL_PROVIDERS,
     ("amp", "config", "model-providers", "delete", "<id>"): MODEL_PROVIDERS,
-    ("amp", "config", "model-providers", "setup-guide", "<router>"): ROUTERS,
+    ("amp", "config", "model-providers", "setup-guide", "<provider>"): LISTED_AFTER_COLON,
     ("amp", "config", "model-providers", "show", "<id>"): MODEL_PROVIDERS,
     ("amp", "config", "model-providers", "test", "<id>"): MODEL_PROVIDERS,
     ("amp", "domains", "add", "<hostname>"): Exempt("new hostname"),
@@ -122,6 +134,8 @@ EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "orb", "portal", "<target>"): Exempt("port or loopback URL"),
     ("amp", "orb", "portal", "access", "<value>"): Exempt("access values not documented"),
     ("amp", "orb", "provider", "<script>"): FILES,
+    ("amp", "orb", "provider", "create", "<name>"): NEW_NAME,
+    ("amp", "orb", "provider", "set-default", "<name>"): NOT_QUERIED,
     ("amp", "orb", "service", "logs", "<name>"): NOT_LISTED,
     ("amp", "orb", "service", "restart", "<name>"): NOT_LISTED,
     ("amp", "orb", "service", "start", "<name>"): NOT_LISTED,
@@ -137,7 +151,12 @@ EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "plugins", "remove", "--target"): Literals(("system", "workspace")),
     ("amp", "plugins", "remove", "<plugin>"): NOT_LISTED,
     ("amp", "plugins", "update", "<plugin>"): NOT_LISTED,
+    ("amp", "profile", "create", "<name>"): NEW_NAME,
+    ("amp", "profile", "delete", "<name>"): NOT_QUERIED,
+    ("amp", "profile", "rename", "<name>"): NOT_QUERIED,
+    ("amp", "profile", "use", "<name>"): NOT_QUERIED,
     ("amp", "projects", "create", "<repository>"): Exempt("repository reference"),
+    ("amp", "projects", "feedback-widget", "remove-origin", "<origins>"): NOT_QUERIED,
     ("amp", "projects", "snapshots", "delete", "--resource"): ORB_SIZES,
     ("amp", "runner", "desktop", "allow", "<permission>"): Exempt("permission names not documented"),
     ("amp", "runner", "dirs", "add", "<paths>"): DIRECTORIES,
@@ -149,23 +168,24 @@ EXACT: dict[tuple[str, ...], Rule] = {
     ("amp", "skill", "add", "<source>"): FILES,
     ("amp", "skill", "info", "<name>"): SKILLS,
     ("amp", "skill", "remove", "<name>"): SKILLS,
+    ("amp", "spaces", "create", "--shared-with"): Exempt("sharing values not documented"),
+    ("amp", "spaces", "create", "<name>"): NEW_NAME,
     ("amp", "svc", "<service>"): Exempt("service list differs from MCP server listings"),
     ("amp", "svc", "<tool>"): Exempt("service tools are not listed"),
     ("amp", "threads", "color", "<color>"): Literals(
         ("blue", "purple", "pink", "red", "orange", "yellow", "green", "cyan")
     ),
-    ("amp", "threads", "import", "claude", "--claude-dir"): DIRECTORIES,
-    ("amp", "threads", "import", "claude", "<sessionIds>"): Exempt("external session IDs"),
-    ("amp", "threads", "import", "codex", "--codex-dir"): DIRECTORIES,
-    ("amp", "threads", "import", "codex", "<threadIds>"): Exempt("external session IDs"),
-    ("amp", "threads", "import", "opencode", "--opencode-dir"): DIRECTORIES,
-    ("amp", "threads", "import", "opencode", "<sessionIds>"): Exempt("external session IDs"),
-    ("amp", "threads", "visibility", "<visibility>"): Literals(("private", "workspace", "group")),
+    ("amp", "threads", "import", "codex", "<threadIds>"): EXTERNAL_IDS,
+    ("amp", "threads", "import", "conductor", "--conductor-db"): FILES,
     ("amp", "tools", "list", "--mode"): AGENT_MODES,
     ("amp", "tools", "show", "--mode"): AGENT_MODES,
 }
 
 FLAG_DEFAULTS: dict[str, Rule] = {
+    "anthropic-federation-rule-id": NOT_LISTED,
+    "anthropic-organization-id": NOT_LISTED,
+    "anthropic-service-account-id": NOT_LISTED,
+    "anthropic-workspace-id": NOT_LISTED,
     "api-format": Documented(r"API format: (?P<values>.+)$"),
     "auth": Documented(r"^Authentication type: (?P<values>[^.(]+?)(?: \(|\.|$)"),
     "client-id": NOT_LISTED,
@@ -173,6 +193,8 @@ FLAG_DEFAULTS: dict[str, Rule] = {
     "cloudflare-gateway-id": NOT_LISTED,
     "context": PARENTHESIZED,
     "deployment": NOT_LISTED,
+    "effort": REASONING_EFFORTS,
+    "entra-application": NOT_LISTED,
     "features": Literals(
         (
             "fast\tFaster serving",
@@ -181,6 +203,7 @@ FLAG_DEFAULTS: dict[str, Rule] = {
         ),
         delimiter=",",
     ),
+    "foundry-resource": NOT_LISTED,
     "google-cloud-project": NOT_LISTED,
     "icon": FILES,
     "id": Exempt("new exit node ID"),
@@ -188,16 +211,23 @@ FLAG_DEFAULTS: dict[str, Rule] = {
     "log-file": FILES,
     "log-level": Literals(("debug", "info", "warn", "error", "audit")),
     "mcp-config": FILES,
-    "mode": Documented(r"\((?P<values>[^()]+?), or a plugin mode"),
+    "mode": Documented(r"\((?P<values>[^()]+?)(?:, a model as [^,]+)?, or a plugin mode"),
     "name": NEW_NAME,
     "oauth-client-id": NOT_LISTED,
+    "openai-identity-provider-id": NOT_LISTED,
+    "openai-service-account-id": NOT_LISTED,
+    "openrouter-federation-policy-id": NOT_LISTED,
+    "orb-provider": NOT_QUERIED,
     "orb-size": ORB_SIZES,
+    "orb-type": NOT_LISTED,
     "output": FILES,
-    "reasoning-effort": Literals(("none", "minimal", "low", "medium", "high", "xhigh", "max")),
+    "profile": NOT_QUERIED,
+    "reasoning-effort": REASONING_EFFORTS,
     "remote": Exempt("new Git remote name"),
     "repository-mode": Literals(("github", "mapped")),
     "runner-id": RUNNERS,
     "settings-file": FILES,
+    "space": NOT_QUERIED,
     "ship-behavior": Literals(("ship", "push-to-branch", "custom")),
     "subject-scope": Documented(r"\((?P<values>[^();]+); default"),
     "visibility": PARENTHESIZED,
@@ -205,9 +235,15 @@ FLAG_DEFAULTS: dict[str, Rule] = {
 
 FREE_FORM = Exempt("free-form value")
 PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
+    "chatIds": EXTERNAL_IDS,
     "connection-id": MODEL_PROVIDERS,
+    "deployment": NOT_LISTED,
     "dir": DIRECTORIES,
+    "folder": DIRECTORIES,
+    "namespace/name": NOT_QUERIED,
+    "new-name": NEW_NAME,
     "project": PROJECTS,
+    "sessionIds": EXTERNAL_IDS,
     "thread": THREADS,
     "thread-url": THREADS,
     "thread-url-or-id": THREADS,
@@ -216,7 +252,6 @@ PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
     "tool-name": TOOLS,
     **dict.fromkeys(
         (
-            "artifact-url",
             "arn",
             "attachment-url",
             "audience",
@@ -228,6 +263,8 @@ PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
             "description",
             "domain",
             "email",
+            "goal",
+            "HH:MM",
             "hours",
             "json",
             "kv",
@@ -248,6 +285,7 @@ PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
             "portal-url",
             "priority",
             "provider/model",
+            "provider/name",
             "query",
             "region",
             "resource-name",
@@ -265,6 +303,7 @@ PLACEHOLDER_DEFAULTS: dict[str, Rule] = {
             "version",
             "weeks",
             "workspace",
+            "zone",
         ),
         FREE_FORM,
     ),
@@ -356,6 +395,8 @@ def resolve(root: Command) -> Resolution:
                 used_placeholder_defaults.add(field.placeholder)
         if completion is None and field.option is not None and field.option.name.endswith("-file"):
             completion = FILES
+        if completion is None and field.option is not None and field.option.name.endswith("-dir"):
+            completion = DIRECTORIES
         if completion is None:
             diagnostics.append(f"no completion rule: {' '.join(field.key)}")
             continue

@@ -459,86 +459,21 @@
     "amp usage",
     "amp version"
   ],
-  "completion_diagnostics": [
-    "invalid literal completion: 'a model as provider/name': amp --mode",
-    "no completion rule: amp --effort",
-    "no completion rule: amp --model",
-    "no completion rule: amp --orb-provider",
-    "no completion rule: amp --profile",
-    "no completion rule: amp --space",
-    "no completion rule: amp boxes cancel-deploy <deployment>",
-    "no completion rule: amp boxes cancel-deploy <namespace/name>",
-    "no completion rule: amp boxes cp <destination>",
-    "no completion rule: amp boxes cp <source>",
-    "no completion rule: amp boxes create --size",
-    "no completion rule: amp boxes create <namespace/name>",
-    "no completion rule: amp boxes delete <namespace/name>",
-    "no completion rule: amp boxes deploy --branch",
-    "no completion rule: amp boxes deploy --domain",
-    "no completion rule: amp boxes deploy --on",
-    "no completion rule: amp boxes deploy --root",
-    "no completion rule: amp boxes deploy --size",
-    "no completion rule: amp boxes deploy <target>",
-    "no completion rule: amp boxes deployments <namespace/name>",
-    "no completion rule: amp boxes exec <namespace/name>",
-    "no completion rule: amp boxes rename <namespace/name>",
-    "no completion rule: amp boxes rename <new-name>",
-    "no completion rule: amp boxes rotate-credential <namespace/name>",
-    "no completion rule: amp boxes schedule --off",
-    "no completion rule: amp boxes schedule --on",
-    "no completion rule: amp boxes schedule --tz",
-    "no completion rule: amp boxes schedule <namespace/name>",
-    "no completion rule: amp boxes show <namespace/name>",
-    "no completion rule: amp boxes start <namespace/name>",
-    "no completion rule: amp boxes stop <namespace/name>",
-    "no completion rule: amp boxes undeploy <deployment>",
-    "no completion rule: amp boxes undeploy <namespace/name>",
-    "no completion rule: amp config model-providers add-key --anthropic-federation-rule-id",
-    "no completion rule: amp config model-providers add-key --anthropic-organization-id",
-    "no completion rule: amp config model-providers add-key --anthropic-service-account-id",
-    "no completion rule: amp config model-providers add-key --anthropic-workspace-id",
-    "no completion rule: amp config model-providers add-key --openai-identity-provider-id",
-    "no completion rule: amp config model-providers add-key --openai-service-account-id",
-    "no completion rule: amp config model-providers add-key <provider>",
-    "no completion rule: amp config model-providers add-router --entra-application",
-    "no completion rule: amp config model-providers add-router --foundry-resource",
-    "no completion rule: amp config model-providers add-router --openrouter-federation-policy-id",
-    "no completion rule: amp config model-providers edit-key --anthropic-federation-rule-id",
-    "no completion rule: amp config model-providers edit-key --anthropic-organization-id",
-    "no completion rule: amp config model-providers edit-key --anthropic-service-account-id",
-    "no completion rule: amp config model-providers edit-key --anthropic-workspace-id",
-    "no completion rule: amp config model-providers edit-key --openai-identity-provider-id",
-    "no completion rule: amp config model-providers edit-key --openai-service-account-id",
-    "no completion rule: amp config model-providers edit-router --entra-application",
-    "no completion rule: amp config model-providers edit-router --foundry-resource",
-    "no completion rule: amp config model-providers edit-router --openrouter-federation-policy-id",
-    "no completion rule: amp config model-providers setup-guide <provider>",
-    "no completion rule: amp orb provider create <name>",
-    "no completion rule: amp orb provider set-default <name>",
-    "no completion rule: amp profile create <name>",
-    "no completion rule: amp profile delete <name>",
-    "no completion rule: amp profile rename <name>",
-    "no completion rule: amp profile rename <new-name>",
-    "no completion rule: amp profile use <name>",
-    "no completion rule: amp projects feedback-widget remove-origin <origins>",
-    "no completion rule: amp projects update --orb-provider",
-    "no completion rule: amp projects update --orb-type",
-    "no completion rule: amp spaces create --goal",
-    "no completion rule: amp spaces create --shared-with",
-    "no completion rule: amp spaces create <name>",
-    "no completion rule: amp threads import conductor --conductor-db",
-    "no completion rule: amp threads import conductor <chatIds>",
-    "no completion rule: amp threads import cursor --cursor-data-dir",
-    "no completion rule: amp threads import cursor --cursor-dir",
-    "no completion rule: amp threads import cursor <chatIds>",
-    "no completion rule: amp threads import devin --devin-dir",
-    "no completion rule: amp threads import devin <sessionIds>",
-    "no completion rule: amp threads import pi --pi-dir",
-    "no completion rule: amp threads import pi <sessionIds>"
-  ],
+  "completion_diagnostics": [],
   "field_completions": {
     "amp --attach": {
       "paths": "$files"
+    },
+    "amp --effort": {
+      "literals": [
+        "none",
+        "minimal",
+        "low",
+        "medium",
+        "high",
+        "xhigh",
+        "max"
+      ]
     },
     "amp --execute": {
       "exempt": "free-form value"
@@ -575,6 +510,21 @@
     "amp --mcp-config": {
       "paths": "$files"
     },
+    "amp --mode": {
+      "literals": [
+        "low",
+        "medium",
+        "high",
+        "ultra",
+        "claude-code"
+      ]
+    },
+    "amp --model": {
+      "exempt": "free-form value"
+    },
+    "amp --orb-provider": {
+      "exempt": "helper does not query these values yet"
+    },
     "amp --orb-size": {
       "literals": [
         "a1.tiny",
@@ -588,6 +538,9 @@
     "amp --plugin-ready-timeout": {
       "exempt": "free-form value"
     },
+    "amp --profile": {
+      "exempt": "helper does not query these values yet"
+    },
     "amp --project": {
       "resource": "projects"
     },
@@ -596,6 +549,9 @@
     },
     "amp --settings-file": {
       "paths": "$files"
+    },
+    "amp --space": {
+      "exempt": "helper does not query these values yet"
     },
     "amp --title": {
       "exempt": "free-form value"
@@ -611,17 +567,59 @@
     "amp account switch <account>": {
       "resource": "accounts"
     },
+    "amp boxes cancel-deploy <deployment>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp boxes cancel-deploy <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
     "amp boxes cp --deployment": {
       "exempt": "Amp has no JSON listing for these values"
     },
+    "amp boxes cp <destination>": {
+      "paths": "$files"
+    },
+    "amp boxes cp <source>": {
+      "paths": "$files"
+    },
+    "amp boxes create --size": {
+      "exempt": "machine sizes not documented"
+    },
+    "amp boxes create <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes delete <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes deploy --branch": {
+      "exempt": "Git branch name"
+    },
+    "amp boxes deploy --domain": {
+      "resource": "domains"
+    },
     "amp boxes deploy --name": {
       "exempt": "new name"
+    },
+    "amp boxes deploy --on": {
+      "exempt": "helper does not query these values yet"
     },
     "amp boxes deploy --port": {
       "exempt": "free-form value"
     },
     "amp boxes deploy --repo": {
       "exempt": "free-form value"
+    },
+    "amp boxes deploy --root": {
+      "paths": "$directories"
+    },
+    "amp boxes deploy --size": {
+      "exempt": "machine sizes not documented"
+    },
+    "amp boxes deploy <target>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes deployments <namespace/name>": {
+      "exempt": "helper does not query these values yet"
     },
     "amp boxes exec --deployment": {
       "exempt": "Amp has no JSON listing for these values"
@@ -631,6 +629,45 @@
     },
     "amp boxes exec <command>": {
       "exempt": "free-form value"
+    },
+    "amp boxes exec <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes rename <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes rename <new-name>": {
+      "exempt": "new name"
+    },
+    "amp boxes rotate-credential <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes schedule --off": {
+      "exempt": "free-form value"
+    },
+    "amp boxes schedule --on": {
+      "exempt": "free-form value"
+    },
+    "amp boxes schedule --tz": {
+      "exempt": "free-form value"
+    },
+    "amp boxes schedule <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes show <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes start <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes stop <namespace/name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp boxes undeploy <deployment>": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp boxes undeploy <namespace/name>": {
+      "exempt": "helper does not query these values yet"
     },
     "amp clone <repository>": {
       "exempt": "repository reference"
@@ -649,6 +686,18 @@
     "amp config model-providers activate <connection-id>": {
       "resource": "model-providers"
     },
+    "amp config model-providers add-key --anthropic-federation-rule-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-key --anthropic-organization-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-key --anthropic-service-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-key --anthropic-workspace-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
     "amp config model-providers add-key --api-key-file": {
       "paths": "$files"
     },
@@ -657,6 +706,18 @@
     },
     "amp config model-providers add-key --name": {
       "exempt": "new name"
+    },
+    "amp config model-providers add-key --openai-identity-provider-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-key --openai-service-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-key <provider>": {
+      "literals": [
+        "anthropic",
+        "openai"
+      ]
     },
     "amp config model-providers add-router --api-format": {
       "literals": [
@@ -681,6 +742,12 @@
     "amp config model-providers add-router --cloudflare-gateway-id": {
       "exempt": "Amp has no JSON listing for these values"
     },
+    "amp config model-providers add-router --entra-application": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers add-router --foundry-resource": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
     "amp config model-providers add-router --google-cloud-location": {
       "exempt": "free-form value"
     },
@@ -698,6 +765,9 @@
     },
     "amp config model-providers add-router --name": {
       "exempt": "new name"
+    },
+    "amp config model-providers add-router --openrouter-federation-policy-id": {
+      "exempt": "Amp has no JSON listing for these values"
     },
     "amp config model-providers add-router --query-params": {
       "exempt": "free-form value"
@@ -762,6 +832,18 @@
     "amp config model-providers delete <id>": {
       "resource": "model-providers"
     },
+    "amp config model-providers edit-key --anthropic-federation-rule-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-key --anthropic-organization-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-key --anthropic-service-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-key --anthropic-workspace-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
     "amp config model-providers edit-key --api-key-file": {
       "paths": "$files"
     },
@@ -770,6 +852,12 @@
     },
     "amp config model-providers edit-key --name": {
       "exempt": "new name"
+    },
+    "amp config model-providers edit-key --openai-identity-provider-id": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-key --openai-service-account-id": {
+      "exempt": "Amp has no JSON listing for these values"
     },
     "amp config model-providers edit-key <connection-id>": {
       "resource": "model-providers"
@@ -797,6 +885,12 @@
     "amp config model-providers edit-router --cloudflare-gateway-id": {
       "exempt": "Amp has no JSON listing for these values"
     },
+    "amp config model-providers edit-router --entra-application": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
+    "amp config model-providers edit-router --foundry-resource": {
+      "exempt": "Amp has no JSON listing for these values"
+    },
     "amp config model-providers edit-router --google-cloud-location": {
       "exempt": "free-form value"
     },
@@ -814,6 +908,9 @@
     },
     "amp config model-providers edit-router --name": {
       "exempt": "new name"
+    },
+    "amp config model-providers edit-router --openrouter-federation-policy-id": {
+      "exempt": "Amp has no JSON listing for these values"
     },
     "amp config model-providers edit-router --query-params": {
       "exempt": "free-form value"
@@ -835,6 +932,30 @@
     },
     "amp config model-providers set-priority <priority>": {
       "exempt": "free-form value"
+    },
+    "amp config model-providers setup-guide <provider>": {
+      "literals": [
+        "anthropic",
+        "openai",
+        "ollama-cloud",
+        "openrouter",
+        "vercel",
+        "cloudflare",
+        "ngrok",
+        "google-cloud-agent-platform",
+        "google-ai-studio",
+        "amazon-bedrock",
+        "azure-ai-foundry",
+        "opencode-go",
+        "deepseek",
+        "zai",
+        "alibaba",
+        "kimi",
+        "fireworks",
+        "baseten",
+        "nvidia",
+        "custom-url"
+      ]
     },
     "amp config model-providers show <id>": {
       "resource": "model-providers"
@@ -1166,8 +1287,14 @@
     "amp orb provider create --workspace": {
       "exempt": "free-form value"
     },
+    "amp orb provider create <name>": {
+      "exempt": "new name"
+    },
     "amp orb provider set-default --workspace": {
       "exempt": "free-form value"
+    },
+    "amp orb provider set-default <name>": {
+      "exempt": "helper does not query these values yet"
     },
     "amp orb redact-output --thread": {
       "resource": "threads"
@@ -1291,14 +1418,29 @@
     "amp portal login-url <portal-url>": {
       "exempt": "free-form value"
     },
+    "amp profile create <name>": {
+      "exempt": "new name"
+    },
+    "amp profile delete <name>": {
+      "exempt": "helper does not query these values yet"
+    },
     "amp profile none --thread": {
       "resource": "threads"
+    },
+    "amp profile rename <name>": {
+      "exempt": "helper does not query these values yet"
+    },
+    "amp profile rename <new-name>": {
+      "exempt": "new name"
     },
     "amp profile status --thread": {
       "resource": "threads"
     },
     "amp profile use --thread": {
       "resource": "threads"
+    },
+    "amp profile use <name>": {
+      "exempt": "helper does not query these values yet"
     },
     "amp projects archive <project>": {
       "resource": "projects"
@@ -1352,6 +1494,9 @@
     },
     "amp projects feedback-widget get <project>": {
       "resource": "projects"
+    },
+    "amp projects feedback-widget remove-origin <origins>": {
+      "exempt": "helper does not query these values yet"
     },
     "amp projects feedback-widget remove-origin <project>": {
       "resource": "projects"
@@ -1411,6 +1556,9 @@
     "amp projects update --name": {
       "exempt": "new name"
     },
+    "amp projects update --orb-provider": {
+      "exempt": "helper does not query these values yet"
+    },
     "amp projects update --orb-size": {
       "literals": [
         "a1.tiny",
@@ -1420,6 +1568,9 @@
         "a1.xxlarge",
         "a1.3xlarge"
       ]
+    },
+    "amp projects update --orb-type": {
+      "exempt": "Amp has no JSON listing for these values"
     },
     "amp projects update --pre-clone-script-file": {
       "paths": "$files"
@@ -1548,8 +1699,17 @@
     "amp skill remove <name>": {
       "resource": "skills"
     },
+    "amp spaces create --goal": {
+      "exempt": "free-form value"
+    },
     "amp spaces create --project": {
       "resource": "projects"
+    },
+    "amp spaces create --shared-with": {
+      "exempt": "sharing values not documented"
+    },
+    "amp spaces create <name>": {
+      "exempt": "new name"
     },
     "amp svc --input": {
       "exempt": "free-form value"
@@ -1635,6 +1795,9 @@
     "amp threads import codex <threadIds>": {
       "exempt": "external session IDs"
     },
+    "amp threads import conductor --conductor-db": {
+      "paths": "$files"
+    },
     "amp threads import conductor --expect-user-email": {
       "exempt": "free-form value"
     },
@@ -1643,6 +1806,15 @@
     },
     "amp threads import conductor --max-age": {
       "exempt": "free-form value"
+    },
+    "amp threads import conductor <chatIds>": {
+      "exempt": "external session IDs"
+    },
+    "amp threads import cursor --cursor-data-dir": {
+      "paths": "$directories"
+    },
+    "amp threads import cursor --cursor-dir": {
+      "paths": "$directories"
     },
     "amp threads import cursor --expect-user-email": {
       "exempt": "free-form value"
@@ -1653,6 +1825,12 @@
     "amp threads import cursor --max-age": {
       "exempt": "free-form value"
     },
+    "amp threads import cursor <chatIds>": {
+      "exempt": "external session IDs"
+    },
+    "amp threads import devin --devin-dir": {
+      "paths": "$directories"
+    },
     "amp threads import devin --expect-user-email": {
       "exempt": "free-form value"
     },
@@ -1661,6 +1839,9 @@
     },
     "amp threads import devin --max-age": {
       "exempt": "free-form value"
+    },
+    "amp threads import devin <sessionIds>": {
+      "exempt": "external session IDs"
     },
     "amp threads import opencode --expect-user-email": {
       "exempt": "free-form value"
@@ -1685,6 +1866,12 @@
     },
     "amp threads import pi --max-age": {
       "exempt": "free-form value"
+    },
+    "amp threads import pi --pi-dir": {
+      "paths": "$directories"
+    },
+    "amp threads import pi <sessionIds>": {
+      "exempt": "external session IDs"
     },
     "amp threads label <labels>": {
       "exempt": "free-form value"
