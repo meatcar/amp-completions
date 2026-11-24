@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1795406435-gdf62b3",
+  "amp_version": "0.0.1795478457-g9601b2",
   "argument_signatures": {
     "amp account switch": "<account>",
     "amp boxes cancel-deploy": "<namespace/name> <deployment>",
