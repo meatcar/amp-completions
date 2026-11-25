@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1795521647-gb04512",
+  "amp_version": "0.0.1795608053-gcec25c",
   "argument_signatures": {
     "amp account switch": "<account>",
     "amp boxes cancel-deploy": "<namespace/name> <deployment>",
@@ -800,6 +800,7 @@
         "fireworks",
         "baseten",
         "nvidia",
+        "boundless",
         "custom-url"
       ]
     },
@@ -954,6 +955,7 @@
         "fireworks",
         "baseten",
         "nvidia",
+        "boundless",
         "custom-url"
       ]
     },
