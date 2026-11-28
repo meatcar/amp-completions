@@ -1,5 +1,5 @@
 {
-  "amp_version": "0.0.1795608053-gcec25c",
+  "amp_version": "0.0.1795824057-g926f24",
   "argument_signatures": {
     "amp account switch": "<account>",
     "amp boxes cancel-deploy": "<namespace/name> <deployment>",
@@ -59,6 +59,7 @@
     "amp orb provider": "<script>",
     "amp orb provider create": "<name>",
     "amp orb provider set-default": "<name>",
+    "amp orb provider setup-url": "<orb-id> [url]",
     "amp orb service logs": "<name>",
     "amp orb service restart": "<name>",
     "amp orb service start": "<name>",
@@ -334,6 +335,7 @@
     "amp orb provider",
     "amp orb provider create",
     "amp orb provider set-default",
+    "amp orb provider setup-url",
     "amp orb redact-output",
     "amp orb restart-processes",
     "amp orb service",
@@ -459,7 +461,9 @@
     "amp usage",
     "amp version"
   ],
-  "completion_diagnostics": [],
+  "completion_diagnostics": [
+    "no completion rule: amp orb provider setup-url <orb-id>"
+  ],
   "field_completions": {
     "amp --attach": {
       "paths": "$files"
@@ -1297,6 +1301,9 @@
     },
     "amp orb provider set-default <name>": {
       "exempt": "helper does not query these values yet"
+    },
+    "amp orb provider setup-url <url>": {
+      "exempt": "free-form value"
     },
     "amp orb redact-output --thread": {
       "resource": "threads"
@@ -2275,6 +2282,7 @@
     "amp orb provider --token",
     "amp orb provider create --workspace",
     "amp orb provider set-default --workspace",
+    "amp orb provider setup-url --clear",
     "amp orb redact-output --thread",
     "amp orb restart-processes --thread",
     "amp orb service ensure --json",
